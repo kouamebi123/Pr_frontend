@@ -3,8 +3,9 @@ import { request as httpsRequest } from 'node:https';
 import { readFileSync, existsSync, statSync, createReadStream } from 'node:fs';
 import { resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isIP } from 'node:net';
 
-export function makeServer({root=fileURLToPath(new URL('.',import.meta.url)),api=process.env.API_URL||'http://localhost:4000'}={}){
+export function makeServer({root=fileURLToPath(new URL('.',import.meta.url)),api=process.env.API_URL||'http://localhost:4000',trustProxy=process.env.TRUST_PROXY==='true'}={}){
   const production=process.env.NODE_ENV==='production';
   const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.json':'application/json','.webmanifest':'application/manifest+json','.woff2':'font/woff2'};
   return createServer((req,res)=>{
@@ -15,7 +16,10 @@ export function makeServer({root=fileURLToPath(new URL('.',import.meta.url)),api
     let path;try{path=decodeURIComponent(new URL(req.url,'http://localhost').pathname);}catch{res.writeHead(400);res.end('URL non valide');return;}
     if(path.startsWith('/api/')){
       const incomingURL=new URL(req.url,'http://localhost');const target=new URL(api);target.pathname=incomingURL.pathname;target.search=incomingURL.search;const headers={...req.headers,host:target.host};delete headers['x-forwarded-for'];delete headers['x-real-ip'];
-      headers['x-forwarded-for']=req.socket.remoteAddress;
+      // Railway's edge supplies X-Real-IP. Trust it only when the server is
+      // reachable exclusively through a trusted proxy that overwrites this header.
+      const edgeIP=typeof req.headers['x-real-ip']==='string'?req.headers['x-real-ip'].trim():'';
+      headers['x-forwarded-for']=trustProxy&&isIP(edgeIP)?edgeIP:req.socket.remoteAddress;
       const upstream=(target.protocol==='https:'?httpsRequest:httpRequest)(target,{method:req.method,headers,timeout:30000},incoming=>{
         // Never expose the internal host; cookies are scoped to this same-origin frontend.
         for(const [key,value] of Object.entries(incoming.headers)) if(!['connection','transfer-encoding','content-security-policy'].includes(key))res.setHeader(key,value);

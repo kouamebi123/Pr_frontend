@@ -68,11 +68,11 @@ npm run check
 npm run build
 ```
 
-Le build est autonome dans `dist/` : `node dist/server.js`. Six tests vérifient la transposition musicale, la recherche, l’échappement HTML, le réordonnancement, l’export CSV, la distribution des fichiers et le proxy de session. Les tests backend complètent ces contrôles par 22 parcours HTTP métier.
+Le build est autonome dans `dist/` : `node dist/server.js`. Sept tests vérifient la transposition musicale, la recherche, l’échappement HTML, le réordonnancement, l’export CSV, la distribution des fichiers et le proxy de session. Les tests backend complètent ces contrôles par 22 parcours HTTP métier.
 
 ## Hébergement
 
-`API_URL` désigne l’origine du backend ; il est lu uniquement par le serveur et n’est jamais envoyé au navigateur. Le navigateur utilise `/api` sur la même origine que l’application : les cookies fonctionnent aussi sur téléphone. `PORT` vaut `3000` par défaut.
+`API_URL` désigne l’origine du backend ; il est lu uniquement par le serveur et n’est jamais envoyé au navigateur. Le navigateur utilise `/api` sur la même origine que l’application : les cookies fonctionnent aussi sur téléphone. `PORT` vaut `3000` par défaut. Sur Railway, régler `TRUST_PROXY=true` pour transmettre l’adresse client fournie par son en-tête `X-Real-IP` au limiteur de tentatives de connexion. Garder `false` pour un serveur directement exposé ; ne l’activer que si le proxy de confiance écrase cet en-tête ([documentation Railway](https://docs.railway.com/networking/public-networking/specs-and-limits)).
 
 Les `Dockerfile`, `railway.json` et un `compose.yaml` de développement sont inclus. En production : frontend HTTPS, API privée, `FRONTEND_ORIGIN` réglé sur l’origine publique exacte, volume persistant backend, une réplique backend. Ne pas remplacer la base par des données locales au navigateur.
 

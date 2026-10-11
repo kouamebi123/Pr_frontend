@@ -5,14 +5,16 @@ export const shortDate=value=>value?new Intl.DateTimeFormat('fr-FR',{day:'2-digi
 export const timeLabel=seconds=>`${Math.floor((seconds||0)/60)}:${String(Math.floor((seconds||0)%60)).padStart(2,'0')}`;
 export const keyChoices=['','C','C#','Db','D','D#','Eb','E','F','F#','Gb','G','G#','Ab','A','A#','Bb','B','Cm','C#m','Dm','Ebm','Em','Fm','F#m','Gm','G#m','Am','Bbm','Bm'];
 export const statusLabel=value=>({draft:'Brouillon',ready:'Prêt',completed:'Joué',planned:'À venir',cancelled:'Annulé'})[value]||value;
+const chordPattern=/^([A-G][#b]?)((?:(?:maj|min|dim|aug|sus|add|omit|no|m|M|Δ|°|ø|\+|-|\d+|[#b]\d+|\((?:[#b]?\d+,?)+\)))*)((?:\/[A-G][#b]?)?)$/;
 export function transpose(text,steps=0){
-  const notes=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];const flats={Db:'C#',Eb:'D#',Gb:'F#',Ab:'G#',Bb:'A#'};
-  return String(text).replace(/\[([A-G](?:#|b)?)([^\]]*)\]/g,(_,root,suffix)=>{
-    const index=notes.indexOf(flats[root]||root);let ending=suffix.replace(/\/([A-G](?:#|b)?)/g,(_x,bass)=>'/'+notes[(notes.indexOf(flats[bass]||bass)+steps%12+12)%12]);
-    return '['+notes[(index+steps%12+12)%12]+ending+']';
+  const notes=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'],natural={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+  const shift=note=>steps%12===0?note:notes[(natural[note[0]]+(note[1]==='#'?1:note[1]==='b'?-1:0)+steps%12+24)%12];
+  return String(text).replace(/\[([^\]\n]+)\]/g,(token,label)=>{
+    const match=label.match(chordPattern);if(!match)return token;
+    const [,root,suffix,bass]=match;return '['+shift(root)+suffix+(bass?'/'+shift(bass.slice(1)):'')+']';
   });
 }
-export function chordMarkup(text,steps=0){return h(transpose(text,steps)).replace(/\[([A-G](?:#|b)?[^\]]*)\]/g,'<b class="chord">$1</b>');}
+export function chordMarkup(text,steps=0){return h(transpose(text,steps)).replace(/\[([^\]\n]+)\]/g,(token,label)=>chordPattern.test(label)?'<b class="chord">'+label+'</b>':token);}
 export function filterSongs(songs,categories,{q='',category='',style='',event='',favorites=false}={}){
   let result=songs.filter(s=>!s.archived&&(!favorites||s.favorite));const query=normalize(q);
   if(query)result=result.filter(s=>normalize(`${s.title} ${s.artist} ${s.lyrics} ${s.notes} ${s.language} ${s.categories.map(id=>categories.find(c=>c.id===id)?.name||'').join(' ')}`).includes(query));

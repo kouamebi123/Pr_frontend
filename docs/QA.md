@@ -2,7 +2,7 @@
 
 ## Tests exécutés
 
-Le 11 octobre 2026 : **28 tests réussis, 0 échec** (22 backend et 6 frontend), contrôles de syntaxe et build frontend réussis.
+Le 11 octobre 2026 : **29 tests réussis, 0 échec** (22 backend et 7 frontend), contrôles de syntaxe et build frontend réussis.
 
 - Création de compte, connexion, déconnexion, changement de mot de passe, absence d’élévation de privilèges à l’inscription.
 - Sessions HttpOnly, protection d’origine, restrictions membre / responsable / administrateur et maintien du dernier administrateur.
@@ -17,11 +17,14 @@ Le 11 octobre 2026 : **28 tests réussis, 0 échec** (22 backend et 6 frontend),
 - Persistance vérifiée en rouvrant la base SQLite.
 - Transposition avec accords mineurs, altérations et basses renversées ; CSV protégé contre l’injection de formules.
 - Échappement HTML, accès aux fichiers publics et refus des fichiers privés du serveur.
-- Proxy HTTP transmettant le cookie de session, le corps et les paramètres à l’API.
+- Proxy HTTP transmettant le cookie de session, le corps et les paramètres à l’API ; IP client du proxy Railway conservée pour les limites de connexion, en-têtes falsifiés refusés en accès direct.
+- Transposition préservant les titres de sections tels que `[Couplet]` et `[Bridge]`.
 
 ## Limites de recette
 
-Aucun contrôle visuel par navigateur mobile ou ordinateur n’a encore été effectué dans cet environnement. Les dimensions responsives et écrans sont implémentés, mais une conformité pixel par pixel aux maquettes n’est pas attestée par les tests unitaires. Les images du PDF sont de faible définition.
+Contrôle réalisé dans Chrome sur la version Railway : accueil, images et monogramme, catégories d’événements, liste CGA, fiches de chants, lecture audio complète du fichier de démonstration (12 secondes, sans erreur), écran des accords et commande de transposition. Liaison frontend/API vérifiée en production ; connexion administrateur, cookie Secure + HttpOnly, accès au catalogue administratif et déconnexion vérifiés par requêtes HTTP réelles.
+
+La recette visuelle sur un téléphone réel (Safari iOS et Chrome Android) reste à effectuer. Les dimensions responsives et écrans sont implémentés, mais la conformité pixel par pixel aux maquettes n’est pas attestée. Les images du PDF sont de faible définition.
 
 Les vrais enregistrements audio, vidéos, paroles et accords des six chants du document ne sont pas fournis. L’import et la lecture sont testés sur des fichiers de test et le court exemple original préchargé. La disponibilité des liens externes dépendra de ceux ajoutés par le responsable.
 
