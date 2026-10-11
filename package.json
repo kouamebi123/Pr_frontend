@@ -1,0 +1,14 @@
+{
+  "name": "porteurs-de-reveil-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.0.0 <25" },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env server.js",
+    "start": "node --env-file-if-exists=.env server.js",
+    "build": "node scripts/build.js",
+    "test": "node --test test/*.test.js",
+    "check": "node --check server.js && node --check src/app.js && node --check src/views.js && node --check src/admin.js"
+  }
+}

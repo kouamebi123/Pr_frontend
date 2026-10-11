@@ -1,0 +1,36 @@
+# Vérification — Porteurs de Réveil
+
+## Tests exécutés
+
+Le 11 octobre 2026 : **28 tests réussis, 0 échec** (22 backend et 6 frontend), contrôles de syntaxe et build frontend réussis.
+
+- Création de compte, connexion, déconnexion, changement de mot de passe, absence d’élévation de privilèges à l’inscription.
+- Sessions HttpOnly, protection d’origine, restrictions membre / responsable / administrateur et maintien du dernier administrateur.
+- Catalogue, recherche sans accents, filtres combinés et sous-styles.
+- Favoris et recherches récentes isolés par utilisateur.
+- Création, modification et archivage des chants ; catégories ; validations de liens et conflits d’édition.
+- Événements et dates valides ; répertoires personnels ou partagés avec l’équipe.
+- Ajout, retrait, ordre, tonalité et notes des chants dans un répertoire.
+- Réalisation d’un événement, historique, interdiction de réaliser un événement futur, duplication d’un répertoire déjà joué.
+- Archivage préservant l’historique ; export respectant les droits.
+- Import de médias, formats refusés, lecture partielle de l’audio.
+- Persistance vérifiée en rouvrant la base SQLite.
+- Transposition avec accords mineurs, altérations et basses renversées ; CSV protégé contre l’injection de formules.
+- Échappement HTML, accès aux fichiers publics et refus des fichiers privés du serveur.
+- Proxy HTTP transmettant le cookie de session, le corps et les paramètres à l’API.
+
+## Limites de recette
+
+Aucun contrôle visuel par navigateur mobile ou ordinateur n’a encore été effectué dans cet environnement. Les dimensions responsives et écrans sont implémentés, mais une conformité pixel par pixel aux maquettes n’est pas attestée par les tests unitaires. Les images du PDF sont de faible définition.
+
+Les vrais enregistrements audio, vidéos, paroles et accords des six chants du document ne sont pas fournis. L’import et la lecture sont testés sur des fichiers de test et le court exemple original préchargé. La disponibilité des liens externes dépendra de ceux ajoutés par le responsable.
+
+## Parcours de recette manuelle
+
+1. Téléphone : ouvrir accueil, événements, styles, CGA, recherche, favoris et les deux variantes de fiche chant.
+2. Lire le chant de démonstration, déplacer le curseur, changer de page, mettre en pause via le mini lecteur.
+3. Ouvrir paroles et accords, transposer, agrandir les paroles, consulter le lien de référence.
+4. Administrateur : importer un média réel autorisé et compléter les paroles d’un chant.
+5. Préparer un événement, ordonner un répertoire, partager avec un deuxième membre, imprimer et exporter.
+6. Marquer l’événement passé comme joué puis vérifier les historiques.
+7. Vérifier sur Safari iOS et Chrome Android le plein écran, les zones sûres, les formulaires, le clavier virtuel et l’installation sur l’écran d’accueil.

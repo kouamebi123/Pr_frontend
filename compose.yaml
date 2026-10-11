@@ -1,0 +1,28 @@
+services:
+  backend:
+    build: ../Pr_backend
+    env_file:
+      - path: ../Pr_backend/.env
+        required: false
+    environment:
+      PORT: "4000"
+      HOST: "0.0.0.0"
+      DATA_DIR: /data
+      FRONTEND_ORIGIN: http://localhost:3000
+      NODE_ENV: development
+    volumes:
+      - pr-data:/data
+    restart: unless-stopped
+  frontend:
+    build: .
+    environment:
+      PORT: "3000"
+      API_URL: http://backend:4000
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+volumes:
+  pr-data:
