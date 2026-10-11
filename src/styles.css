@@ -23,3 +23,31 @@
 @media(max-width:360px){.page{padding-left:16px;padding-right:16px}.page-home{padding-left:21px;padding-right:21px}.home-tile{padding:21px 20px;gap:20px;min-height:98px}.home-tile h2{font-size:16px}.song-name b{font-size:13px}.song-name small{font-size:11px}.style-categories .category-row b{font-size:12px}.song-visual{max-width:235px}.form-grid{grid-template-columns:1fr}.event-card>.pill{display:none}.member-row select{margin-left:38px}.page-song{padding-left:21px;padding-right:21px}.expanded .song-information{padding:21px}.song-detail.expanded{margin-left:-21px;margin-right:-21px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 @media print{.sidebar,.desktop-topbar,.bottom-nav,.mini-player,.header-actions,.back-button,.setlist-footer,.summary-actions,.reorder,.ordered-songs .icon-button,.modal-backdrop,#toast,.skip-link,.reader-toolbar .icon-button,.song-actions{display:none!important}.workspace{margin:0}.page{padding:0;max-width:none}.page-header{margin-bottom:18px}.page-header h1{font-size:24px}.page-header p{display:block;color:#666}.ordered-songs li{break-inside:avoid;border-color:#ddd;padding:12px 8px}.ordered-songs .cover{display:none}.ordered-songs li>a{flex-basis:auto}.ordered-songs .tonality{margin:0}.print-footer{display:block;font-size:10px;margin-top:25px;color:#666}.setlist-summary{background:transparent;border:1px solid #ddd}.reader-card{border:0;padding:0}.lyrics-reader{font-size:16px!important}.chord{background:transparent;color:#222}.page{padding-bottom:0}.info-box{background:transparent}.auth-layout,.splash{display:none}body{background:white;color:black}a[href]:after{content:none}}
+
+/* ——— Corrections : logo vectoriel, fiche chant, membres ——— */
+.pr-logo{fill:none;stroke:currentColor;overflow:visible}
+.count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;margin-left:6px;border-radius:10px;background:var(--gold);color:#2a0f55;font-size:11px;font-weight:700;line-height:1}
+.reference-card .count{margin-left:auto}
+.reference-card .count+.icon{margin-left:8px}
+.info-box.warning{display:flex;gap:10px;align-items:center;background:#fbf3e4;border-left-color:var(--gold);color:#7a5a24;margin:0 0 18px}
+.info-box.warning .icon{width:18px;height:18px;flex-shrink:0}
+.pending-members{margin-bottom:22px}
+.pending-members h2{display:flex;align-items:center;font-size:15px;margin:0 0 10px}
+.member-row.pending{border-left:3px solid var(--gold)}
+.member-row.disabled{opacity:.55}
+.member-row b em{font-style:normal;font-weight:400;color:var(--muted);font-size:12px}
+.member-actions{display:flex;gap:6px;flex-shrink:0}
+.member-row select:disabled{opacity:.6}
+.temp-password{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:22px;letter-spacing:2px;text-align:center;padding:16px;margin:14px 0;border:1px dashed #cdb9dc;border-radius:10px;background:var(--pale);color:var(--purple);user-select:all;overflow-wrap:anywhere}
+.pending-icon{margin-bottom:18px}
+/* « Lien vidéo » : pastille pleine + triangle blanc, comme la maquette */
+.song-tabs>a[href$="reference"]>.icon:first-child path{fill:#fff;stroke:#fff;stroke-linejoin:round}
+@media(max-width:760px){
+  .member-row{flex-wrap:wrap;padding:15px}
+  .member-actions{width:100%;justify-content:flex-end}
+  /* La pochette de la fiche chant garde ses proportions (la règle .cover fixait 52 px de haut) */
+  .song-visual{max-width:250px;margin:0 auto 12px}
+  .large-cover{height:auto;aspect-ratio:5/4;object-fit:cover;border-radius:12px}
+  .song-topbar{margin-bottom:12px}
+  .expanded .large-cover{height:260px;aspect-ratio:auto}
+}

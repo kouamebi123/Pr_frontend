@@ -1,5 +1,5 @@
-const CACHE='pr-shell-v1';
-const FILES=['/','/src/styles.css','/src/app.js','/src/views.js','/src/admin.js','/src/lib.js','/src/icons.js','/assets/app-icon.png','/assets/worship-purple.png','/assets/worship-gold.png'];
+const CACHE='pr-shell-v2';
+const FILES=['/','/src/styles.css','/src/app.js','/src/views.js','/src/admin.js','/src/lib.js','/src/icons.js','/assets/app-icon.png','/assets/favicon.svg','/assets/worship-purple.jpg','/assets/worship-gold.jpg'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{

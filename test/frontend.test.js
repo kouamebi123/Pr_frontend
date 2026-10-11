@@ -5,7 +5,8 @@ import { once } from 'node:events';
 import { makeServer } from '../server.js';
 import { h,normalize,transpose,chordMarkup,filterSongs,setlistCSV,moveItem,safeLink } from '../src/lib.js';
 import * as view from '../src/views.js';
-import { songForm,setlistForm } from '../src/admin.js';
+import { songForm,setlistForm,adminPage,memberForm,temporaryPasswordView } from '../src/admin.js';
+import { logo } from '../src/icons.js';
 
 test('untrusted titles and lyrics are escaped in HTML and chord markup',()=>{
   assert.equal(h('<img src=x onerror="alert(1)">'),'&lt;img src=x onerror=&quot;alert(1)&quot;&gt;');
@@ -38,20 +39,28 @@ test('screens expose the reference navigation plus repertoire and administrative
   const home=view.home(s);for(const href of ['#events','#styles','#search','#favorites','#songs','#setlists'])assert.ok(home.includes(href));
   const form=songForm(s);for(const name of ['title','artist','lyrics','chords','audio_url','video_url','reference_url','categories'])assert.ok(form.includes(`name="${name}"`));
   assert.ok(setlistForm(s).includes('name="event_id"'));
+  assert.ok(!view.songList(s,new URLSearchParams(),true).includes('data-action="new-song"'),'pas de bouton « + » sur Mes favoris');
+  assert.ok(view.pendingPage().includes('#login'));assert.ok(memberForm().includes('name="email"'));
+  const members=adminPage({...s,user:{id:'me',name:'Alice',role:'admin'}},{songs:[],audit:[],users:[{id:'p',name:'<b>Paul</b>',email:'p@x.fr',role:'member',status:'pending',created_at:'2026-10-01'},{id:'me',name:'Alice',email:'a@x.fr',role:'admin',status:'active'}]},'members');
+  assert.ok(members.includes('data-action="approve-member"'));assert.ok(!members.includes('<b>Paul</b>'));assert.ok(!members.includes('data-action="member-menu" data-id="me"'));
+  assert.ok(!temporaryPasswordView({name:'<i>x</i>',email:'e'},'<pw>').includes('<pw>'));
   const malicious=view.songRows([{id:'safe',title:'<script>evil</script>',artist:'Test'}]);assert.ok(!malicious.includes('<script>'));
+});
+test('logo is a true vector monogram, not a pixel trace',()=>{
+  const svg=logo();assert.ok(svg.includes('stroke="currentColor"'));assert.ok(!/h1v1|M\d+ \d+h\d+v1/.test(svg));assert.ok(svg.length<1500);
 });
 test('frontend serves app assets, rejects secrets/traversal and proxies real sessions',async()=>{
   const upstream=createServer(async(req,res)=>{
     let body='';for await(const chunk of req)body+=chunk;
-    res.setHeader('Content-Type','application/json');res.setHeader('Set-Cookie','pr_session=test; HttpOnly; Path=/; SameSite=Lax');res.end(JSON.stringify({path:req.url,cookie:req.headers.cookie,ip:req.headers['x-forwarded-for'],method:req.method,body:JSON.parse(body||'{}')}));
+    res.setHeader('Content-Type','application/json');res.setHeader('Set-Cookie','pr_session=test; HttpOnly; Path=/; SameSite=Lax');res.end(JSON.stringify({host:req.headers['x-forwarded-host'],path:req.url,cookie:req.headers.cookie,ip:req.headers['x-forwarded-for'],method:req.method,body:JSON.parse(body||'{}')}));
   });upstream.listen(0,'127.0.0.1');await once(upstream,'listening');
   const server=makeServer({api:'http://127.0.0.1:'+upstream.address().port,trustProxy:false});server.listen(0,'127.0.0.1');await once(server,'listening');const base='http://127.0.0.1:'+server.address().port;
   try{
     const root=await fetch(base+'/');assert.equal(root.status,200);assert.match(await root.text(),/lang="fr"/);assert.match(root.headers.get('content-security-policy'),/frame-ancestors 'none'/);
-    for(const path of ['/src/app.js','/src/styles.css','/assets/app-icon.png','/manifest.webmanifest'])assert.equal((await fetch(base+path)).status,200,path);
+    for(const path of ['/src/app.js','/src/styles.css','/assets/app-icon.png','/assets/favicon.svg','/assets/icon-maskable-512.png','/assets/worship-purple.jpg','/manifest.webmanifest'])assert.equal((await fetch(base+path)).status,200,path);
     for(const path of ['/.env','/.git/config','/server.js','/src/%2e%2e%2fserver.js'])assert.equal((await fetch(base+path)).status,404,path);
     const response=await fetch(base+'/api/auth/login?test=1',{method:'POST',headers:{'Content-Type':'application/json',Cookie:'pr_session=old'},body:JSON.stringify({email:'test@example.test'})});
-    const data=await response.json();assert.equal(data.path,'/api/auth/login?test=1');assert.equal(data.cookie,'pr_session=old');assert.equal(data.body.email,'test@example.test');assert.match(response.headers.get('set-cookie'),/HttpOnly/);
+    const data=await response.json();assert.equal(data.path,'/api/auth/login?test=1');assert.equal(data.cookie,'pr_session=old');assert.equal(data.body.email,'test@example.test');assert.equal(data.host,new URL(base).host);assert.match(response.headers.get('set-cookie'),/HttpOnly/);
     const spoof=await (await fetch(base+'/api/health',{headers:{'X-Real-IP':'198.51.100.7','X-Forwarded-For':'203.0.113.9'}})).json();assert.equal(spoof.ip,'127.0.0.1');
   }finally{await Promise.all([new Promise(r=>server.close(r)),new Promise(r=>upstream.close(r))]);}
 });

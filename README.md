@@ -26,7 +26,7 @@ Ouvrir **http://localhost:3000**. Aucune installation de dépendances npm n’es
 
 Pour tester sur un téléphone du même réseau, remplacer `FRONTEND_ORIGIN` du backend par `http://ADRESSE_IP_DU_PC:3000` (ou l’ajouter à la liste séparée par une virgule), puis ouvrir cette adresse sur le téléphone. Utiliser `NODE_ENV=development` en HTTP local.
 
-Pour l’administration, créer le premier compte administrateur avec les instructions du README backend. Les inscriptions depuis l’interface créent toujours des membres, jamais des administrateurs.
+Pour l’administration, créer le premier compte administrateur avec les instructions du README backend. L’application est réservée aux membres : une demande d’accès depuis l’interface crée un compte en attente, qu’un administrateur valide dans **Administration → Membres** (où il peut aussi créer des comptes avec mot de passe provisoire, désactiver un compte ou réinitialiser un mot de passe oublié).
 
 ## Écrans
 
@@ -45,14 +45,14 @@ Pour l’administration, créer le premier compte administrateur avec les instru
 | Paroles, accords transposables, référence, événements | `/#song/:id/lyrics`, `/chords`, `/reference`, `/history` |
 | Répertoires, préparation et historique | `/#setlists`, `/#setlist/:id` |
 | Calendrier et détail d’un événement | `/#calendar`, `/#event/:id` |
-| Profil, connexion et inscription | `/#profile`, `/#login`, `/#register` |
+| Profil, connexion et demande d’accès | `/#profile`, `/#login`, `/#register` |
 | Catalogue, catégories, rôles et journal | `/#admin` |
 
 Sur téléphone, navigation inférieure Accueil / Recherche / Favoris / Profil. Sur ordinateur, navigation latérale et vues élargies. Aucune application native ni dépendance Expo n’est nécessaire pour cette version. Le manifeste et le service worker permettent un lancement depuis l’écran d’accueil ; les données métier restent en ligne et ne sont pas mises en cache hors connexion.
 
 ## Préparer un répertoire
 
-1. Créer un compte, puis un événement dans **Profil → Événements**.
+1. Demander un accès (ou se faire créer un compte par un administrateur), puis créer un événement dans **Profil → Événements**.
 2. Créer un répertoire personnel ou partagé avec l’équipe et l’associer à cet événement.
 3. Ajouter des chants ; régler l’ordre, les tonalités et les notes.
 4. Exporter en CSV, imprimer / enregistrer en PDF via le navigateur ou partager le lien avec les membres connectés.

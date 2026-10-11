@@ -4,7 +4,7 @@
 
 Le 11 octobre 2026 : **29 tests réussis, 0 échec** (22 backend et 7 frontend), contrôles de syntaxe et build frontend réussis.
 
-- Création de compte, connexion, déconnexion, changement de mot de passe, absence d’élévation de privilèges à l’inscription.
+- Création de compte, connexion, déconnexion, changement de mot de passe, absence d’élévation de privilèges à l’inscription, demandes d’accès validées par un administrateur, mots de passe provisoires, comptes désactivés.
 - Sessions HttpOnly, protection d’origine, restrictions membre / responsable / administrateur et maintien du dernier administrateur.
 - Catalogue, recherche sans accents, filtres combinés et sous-styles.
 - Favoris et recherches récentes isolés par utilisateur.
@@ -14,7 +14,7 @@ Le 11 octobre 2026 : **29 tests réussis, 0 échec** (22 backend et 7 frontend),
 - Réalisation d’un événement, historique, interdiction de réaliser un événement futur, duplication d’un répertoire déjà joué.
 - Archivage préservant l’historique ; export respectant les droits.
 - Import de médias, formats refusés, lecture partielle de l’audio.
-- Persistance vérifiée en rouvrant la base SQLite.
+- Persistance vérifiée en rouvrant la base PostgreSQL ; reprise unique des données de l’ancienne base SQLite.
 - Transposition avec accords mineurs, altérations et basses renversées ; CSV protégé contre l’injection de formules.
 - Échappement HTML, accès aux fichiers publics et refus des fichiers privés du serveur.
 - Proxy HTTP transmettant le cookie de session, le corps et les paramètres à l’API ; IP client du proxy Railway conservée pour les limites de connexion, en-têtes falsifiés refusés en accès direct.

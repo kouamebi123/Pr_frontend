@@ -12,18 +12,26 @@ function route(){const [path,query]=(location.hash.slice(1)||'welcome').split('?
 function go(path){location.hash=path;}
 function requireUser(){if(s.user)return true;s.afterAuth=location.hash||'#home';go('login');return false;}
 async function catalog(){let songs=[],offset=0,total=1;while(offset<total){const data=await api('/songs?limit=1000&offset='+offset);songs.push(...data.songs);total=data.total;offset+=data.songs.length;if(!data.songs.length)break;}s.songs=songs;}
-async function refresh(){const [me,cats]=await Promise.all([api('/auth/me'),api('/categories')]);s.user=me.user;s.categories=cats.categories;await catalog();if(s.user){const [dashboard,events]=await Promise.all([api('/dashboard'),api('/events')]);s.dashboard=dashboard;s.events=events.events;}else{s.dashboard=null;s.events=[];s.searches=[];s.setlists=[];}}
+// The repertoire is reserved to validated members: nothing but /auth/me is loaded before sign-in.
+async function refresh(){const me=await api('/auth/me');s.user=me.user;s.registration=me.registration;
+  if(s.user){const [cats,,dashboard,events]=await Promise.all([api('/categories'),catalog(),api('/dashboard'),api('/events')]);s.categories=cats.categories;s.dashboard=dashboard;s.events=events.events;}
+  else{s.categories=[];s.songs=[];s.dashboard=null;s.events=[];s.searches=[];s.setlists=[];}}
+const PUBLIC_PATHS=['welcome','login','register','pending'];
+function askNewPassword(){modal('Choisissez votre mot de passe','<p class="info-box warning">Vous êtes connecté avec un mot de passe provisoire. Choisissez maintenant votre mot de passe personnel.</p>'+forms.passwordForm());}
 function modal(title,content,wide=false){previousFocus=document.activeElement;modalRoot.innerHTML=`<div class="modal-backdrop"><section class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" aria-labelledby="modal-title"><header><h2 id="modal-title">${h(title)}</h2><button class="icon-button" data-action="close-modal" aria-label="Fermer">${icon('close')}</button></header><div class="modal-content">${content}</div></section></div>`;document.body.classList.add('modal-open');requestAnimationFrame(()=>modalRoot.querySelector('input:not([type="checkbox"]),select,textarea,button')?.focus());}
-function closeModal(){if(uploadCount){toast('Patientez pendant l’import du fichier.');return;}const selectionOpen=!!modalRoot.querySelector('#selection-results');modalRoot.innerHTML='';document.body.classList.remove('modal-open');confirmCallback=null;previousFocus?.focus();if(selectionOpen&&route().path===s.route.path)void render({keepScroll:true});}
+function closeModal(){if(uploadCount){toast('Patientez pendant l’import du fichier.');return;}const selectionOpen=!!modalRoot.querySelector('#selection-results')||!!modalRoot.querySelector('#temp-password');modalRoot.innerHTML='';document.body.classList.remove('modal-open');confirmCallback=null;previousFocus?.focus();if(selectionOpen&&route().path===s.route.path)void render({keepScroll:true});}
 function confirmAction(title,message,callback,label='Confirmer'){modal(title,`<p class="confirm-message">${h(message)}</p><div class="form-error" role="alert"></div><div class="form-footer"><button class="btn outline" data-action="close-modal">Annuler</button><button class="btn primary" data-action="confirm">${h(label)}</button></div>`);confirmCallback=callback;}
 const localSearches=()=>{try{return JSON.parse(localStorage.getItem('pr_recent')||'[]').slice(0,10);}catch{return[];}};
 async function remember(term){if(!term.trim())return;if(s.user)await api('/searches',{method:'POST',body:{term:term.trim()}});else{const recent=[{term:term.trim()},...localSearches().filter(x=>x.term!==term.trim())].slice(0,10);localStorage.setItem('pr_recent',JSON.stringify(recent));}s.searches=s.user?(await api('/searches')).searches:localSearches();}
 
 async function render({keepScroll=false}={}){
   const generation=++renderVersion;const scrollY=window.scrollY;s.route=route();const {path,params}=s.route;let content='';
+  if(!s.user&&!PUBLIC_PATHS.includes(path)){s.afterAuth='#'+(location.hash.slice(1)||'home');location.replace('#login');return;}
+  if(s.user&&['login','register','pending'].includes(path)){location.replace('#home');return;}
   try{
     if(path==='welcome'){document.title='Porteurs de Réveil';app.innerHTML=view.welcome();return;}
-    if(path==='login'||path==='register'){app.innerHTML=view.authPage(path==='register');document.title=(path==='login'?'Connexion':'Inscription')+' · Porteurs de Réveil';return;}
+    if(path==='pending'){document.title='Demande envoyée · Porteurs de Réveil';app.innerHTML=view.pendingPage();return;}
+    if(path==='login'||path==='register'){app.innerHTML=view.authPage(path==='register');document.title=(path==='login'?'Connexion':'Demande d’accès')+' · Porteurs de Réveil';return;}
     if(path==='home')content=view.home(s);
     else if(path==='events'||path==='styles')content=view.categories(s,path==='events'?'event':'style');
     else if(path==='songs'||path==='favorites')content=view.songList(s,params,path==='favorites');
@@ -39,7 +47,9 @@ async function render({keepScroll=false}={}){
     if(generation!==renderVersion)return;
     app.innerHTML=view.shell(content,s,path);document.title=(app.querySelector('h1')?.textContent||'Répertoire')+' · Porteurs de Réveil';syncAudio();
     if(keepScroll)window.scrollTo({top:scrollY});else window.scrollTo({top:0});
-  }catch(error){if(generation!==renderVersion)return;app.innerHTML=view.shell(view.header('Impossible d’ouvrir cette page')+view.empty('Réessayons dans un instant',error.message,view.button('Réessayer','retry')),s,path);}
+  }catch(error){if(generation!==renderVersion)return;
+    if(error.status===401){s.user=null;await refresh().catch(()=>{});s.afterAuth=location.hash||'#home';location.replace('#login');toast('Votre session a expiré. Reconnectez-vous.',true);return;}
+    app.innerHTML=view.shell(view.header('Impossible d’ouvrir cette page')+view.empty('Réessayons dans un instant',error.message,view.button('Réessayer','retry')),s,path);}
 }
 function syncAudio(){
   const active=s.playingSong&&s.song?.id===s.playingSong.id;
@@ -115,7 +125,15 @@ const actions={
   'edit-profile':()=>modal('Modifier mon nom',forms.profileForm(s)),
   'change-password':()=>modal('Changer mon mot de passe',forms.passwordForm()),
   'toggle-password':el=>{const input=el.previousElementSibling;input.type=input.type==='password'?'text':'password';el.textContent=input.type==='password'?'Afficher':'Masquer';},
-  logout:async()=>{await api('/auth/logout',{method:'POST'});audio.pause();s.playingSong=null;s.user=null;await refresh();go('home');await render();toast('Vous êtes déconnecté');},
+  logout:async()=>{await api('/auth/logout',{method:'POST'});audio.pause();audio.removeAttribute('src');s.playingSong=null;s.user=null;await refresh();s.afterAuth='#home';go('login');toast('Vous êtes déconnecté');},
+  'new-member':()=>modal('Ajouter un membre',forms.memberForm()),
+  'approve-member':async el=>{await api('/admin/users/'+el.dataset.id,{method:'PATCH',body:{status:'active'}});await render({keepScroll:true});toast('Accès validé');},
+  'reject-member':el=>{const user=s.admin.users.find(u=>u.id===el.dataset.id);confirmAction('Refuser cette demande ?',`La demande de ${user.name} (${user.email}) sera supprimée.`,async()=>{await api('/admin/users/'+user.id,{method:'DELETE'});closeModal();await render({keepScroll:true});toast('Demande refusée');},'Refuser');},
+  'member-menu':el=>{const user=s.admin.users.find(u=>u.id===el.dataset.id);modal(user.name,`<div class="menu-actions"><button class="reference-card" data-action="reset-member" data-id="${user.id}">${icon('lock')} Attribuer un mot de passe provisoire</button>${user.status==='disabled'?`<button class="reference-card" data-action="enable-member" data-id="${user.id}">${icon('check')} Réactiver le compte</button>`:`<button class="reference-card danger" data-action="disable-member" data-id="${user.id}">${icon('close')} Désactiver le compte</button>`}</div>`);},
+  'reset-member':el=>{const user=s.admin.users.find(u=>u.id===el.dataset.id);confirmAction('Réinitialiser le mot de passe ?',`${user.name} sera déconnecté et devra se reconnecter avec un mot de passe provisoire.`,async()=>{const r=await api('/admin/users/'+user.id+'/reset-password',{method:'POST'});modal('Mot de passe provisoire',forms.temporaryPasswordView(r.user,r.temporary_password));s.admin=await api('/admin');},'Réinitialiser');},
+  'disable-member':el=>{const user=s.admin.users.find(u=>u.id===el.dataset.id);confirmAction('Désactiver ce compte ?',`${user.name} ne pourra plus se connecter. Ses répertoires et l’historique sont conservés ; le compte peut être réactivé.`,async()=>{await api('/admin/users/'+user.id,{method:'PATCH',body:{status:'disabled'}});closeModal();await render({keepScroll:true});toast('Compte désactivé');},'Désactiver');},
+  'enable-member':async el=>{await api('/admin/users/'+el.dataset.id,{method:'PATCH',body:{status:'active'}});closeModal();await render({keepScroll:true});toast('Compte réactivé');},
+  'copy-temp':async()=>{const text=document.querySelector('#temp-password')?.textContent||'';try{await navigator.clipboard.writeText(text);toast('Mot de passe copié');}catch{toast('Sélectionnez puis copiez le mot de passe.');}},
   'install-help':async()=>{if(installPrompt){await installPrompt.prompt();installPrompt=null;}else modal('Porteurs de Réveil sur votre téléphone',`<p>Sur iPhone : ouvrez cette application dans Safari, touchez <strong>Partager</strong>, puis <strong>Sur l’écran d’accueil</strong>.</p><p>Sur Android : ouvrez le menu de votre navigateur puis <strong>Installer l’application</strong> ou <strong>Ajouter à l’écran d’accueil</strong>.</p><p class="muted">Une connexion Internet est nécessaire pour consulter et enregistrer les chants et les répertoires.</p>`);}
 };
 
@@ -133,7 +151,10 @@ document.addEventListener('submit',async event=>{
   if(uploadCount){toast('Patientez pendant l’import des fichiers.');return;}
   const data=Object.fromEntries(new FormData(form));const kind=form.dataset.form;const submit=form.querySelector('[type="submit"]');const errorBox=form.querySelector('.form-error');if(submit)submit.disabled=true;if(errorBox)errorBox.textContent='';
   try{
-    if(kind==='login'||kind==='register'){await api('/auth/'+kind,{method:'POST',body:data});await refresh();go(s.afterAuth.replace(/^#/,''));await render();toast(kind==='register'?'Bienvenue dans Porteurs de Réveil':'Heureux de vous retrouver');}
+    if(kind==='register'){const r=await api('/auth/register',{method:'POST',body:data});if(r.pending){go('pending');}else{await refresh();go('home');toast('Bienvenue dans Porteurs de Réveil');}}
+    if(kind==='login'){await api('/auth/login',{method:'POST',body:data});await refresh();const next=s.afterAuth.replace(/^#/,'');go(['login','register','pending','welcome',''].includes(next)?'home':next);s.afterAuth='#home';
+      if(s.user.must_change_password)setTimeout(askNewPassword,150);else toast('Heureux de vous retrouver');}
+    if(kind==='member'){const r=await api('/admin/users',{method:'POST',body:data});modal('Compte créé',forms.temporaryPasswordView(r.user,r.temporary_password));s.admin=await api('/admin');}
     if(kind==='search'){await remember(data.q);history.replaceState(null,'','#search?q='+encodeURIComponent(data.q));await render({keepScroll:true});}
     if(kind==='song'){data.categories=new FormData(form).getAll('categories');data.tempo=Number(data.tempo)||0;data.duration=Number(data.duration)||0;data.version=Number(form.dataset.version);const id=form.dataset.id;const song=await api('/songs'+(id?'/'+id:''),{method:id?'PUT':'POST',body:data});closeModal();await catalog();go('song/'+song.id);await render();toast(id?'Chant mis à jour':'Chant ajouté au catalogue');}
     if(kind==='category'){const id=form.dataset.id;if(data.kind==='event')data.parent_id='';await api('/categories'+(id?'/'+id:''),{method:id?'PATCH':'POST',body:data});closeModal();s.categories=(await api('/categories')).categories;await render({keepScroll:true});toast('Catégorie enregistrée');}
@@ -141,7 +162,7 @@ document.addEventListener('submit',async event=>{
     if(kind==='item'){data.version=s.detail.version;s.detail=await api('/setlists/'+s.detail.id+'/items/'+form.dataset.id,{method:'PATCH',body:data});closeModal();await render({keepScroll:true});toast('Tonalité et notes enregistrées');}
     if(kind==='event'){const id=form.dataset.id;data.version=Number(form.dataset.version);const e=await api('/events'+(id?'/'+id:''),{method:id?'PUT':'POST',body:data});closeModal();s.events=(await api('/events')).events;go('event/'+e.id);await render();toast('Événement enregistré');}
     if(kind==='profile'){s.user=(await api('/auth/profile',{method:'PATCH',body:data})).user;closeModal();await render({keepScroll:true});toast('Profil mis à jour');}
-    if(kind==='password'){await api('/auth/password',{method:'POST',body:data});closeModal();toast('Mot de passe modifié');}
+    if(kind==='password'){await api('/auth/password',{method:'POST',body:data});closeModal();s.user=(await api('/auth/me')).user;await render({keepScroll:true});toast('Mot de passe modifié');}
   }catch(error){if(errorBox)errorBox.textContent=error.message;else toast(error.message,true);}
   finally{if(submit?.isConnected)submit.disabled=false;}
 });
@@ -164,7 +185,7 @@ document.addEventListener('change',async event=>{
       try{const upload=await api('/uploads',{method:'POST',body:file,headers:{'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)}});form.elements[field].value=upload.url;status.textContent='Fichier importé : '+file.name;}
       catch(error){status.textContent=error.message;throw error;}finally{uploadCount--;form.querySelector('[type="submit"]').disabled=uploadCount>0;}
     }
-  }catch(error){toast(error.message,true);}
+  }catch(error){toast(error.message,true);if(el.dataset.roleUser)await render({keepScroll:true});}
 });
 document.addEventListener('keydown',event=>{
   if((event.metaKey||event.ctrlKey)&&event.key==='k'){event.preventDefault();go('search');}
@@ -178,5 +199,5 @@ audio.addEventListener('error',()=>toast('Impossible de lire ce média. Vérifie
 window.addEventListener('offline',()=>toast('Vous êtes hors connexion. Les modifications nécessitent Internet.',true));
 window.addEventListener('online',()=>toast('Connexion rétablie'));
 
-try{await refresh();if(!location.hash)go(sessionStorage.getItem('pr_seen')?'home':'welcome');sessionStorage.setItem('pr_seen','1');await render();if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});}
+try{await refresh();if(!location.hash)go(sessionStorage.getItem('pr_seen')?'home':'welcome');sessionStorage.setItem('pr_seen','1');await render();if(s.user?.must_change_password)askNewPassword();if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});}
 catch(error){app.innerHTML=`<main class="startup-error">${view.empty('Le répertoire ne répond pas',error.message,'<button class="btn primary" data-action="retry-startup">Réessayer</button>')}</main>`;actions['retry-startup']=async()=>{await refresh();await render();};}

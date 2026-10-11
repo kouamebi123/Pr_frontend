@@ -7,7 +7,7 @@ import { isIP } from 'node:net';
 
 export function makeServer({root=fileURLToPath(new URL('.',import.meta.url)),api=process.env.API_URL||'http://localhost:4000',trustProxy=process.env.TRUST_PROXY==='true'}={}){
   const production=process.env.NODE_ENV==='production';
-  const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.json':'application/json','.webmanifest':'application/manifest+json','.woff2':'font/woff2'};
+  const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.json':'application/json','.webmanifest':'application/manifest+json','.woff2':'font/woff2'};
   return createServer((req,res)=>{
     res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');
     res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: http: data:; media-src 'self' https: http: blob:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
@@ -16,6 +16,8 @@ export function makeServer({root=fileURLToPath(new URL('.',import.meta.url)),api
     let path;try{path=decodeURIComponent(new URL(req.url,'http://localhost').pathname);}catch{res.writeHead(400);res.end('URL non valide');return;}
     if(path.startsWith('/api/')){
       const incomingURL=new URL(req.url,'http://localhost');const target=new URL(api);target.pathname=incomingURL.pathname;target.search=incomingURL.search;const headers={...req.headers,host:target.host};delete headers['x-forwarded-for'];delete headers['x-real-ip'];
+      // Public host the browser used: lets the API validate Origin even behind a custom domain.
+      headers['x-forwarded-host']=String(req.headers.host||'');
       // Railway's edge supplies X-Real-IP. Trust it only when the server is
       // reachable exclusively through a trusted proxy that overwrites this header.
       const edgeIP=typeof req.headers['x-real-ip']==='string'?req.headers['x-real-ip'].trim():'';
