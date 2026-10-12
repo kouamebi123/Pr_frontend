@@ -117,3 +117,13 @@
 .cp-seg>span{color:#241a33}
 @media(max-width:760px){.chords-reader{font-size:17px}.cp-section{font-size:16px;margin-top:20px}}
 @media print{.cp-seg>.chord{color:#000}}
+
+/* ——— Choix de tonalité ——— */
+.key-toolbar{gap:12px}
+.key-origin{font-size:13px}
+.key-picker{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--purple)}
+.key-picker select{font-size:14px;font-weight:700;padding:7px 10px;border:1px solid #d9cfe3;border-radius:8px;background:var(--white);color:var(--purple)}
+.key-steps{display:flex;align-items:center;gap:4px}
+.key-note{font-size:12px;color:var(--muted);margin:-8px 0 14px}
+.key-note:empty{display:none}
+@media(max-width:760px){.key-toolbar{display:grid;grid-template-columns:1fr auto auto;gap:8px 8px;align-items:center}.key-origin{grid-column:1/-1}.key-toolbar>.icon-button:last-child{justify-self:end}}

@@ -23,6 +23,13 @@ export function transposeChord(label,steps=0){
   return shiftNote(c.root,c.acc,steps,c.system)+c.suffix+(c.bassRoot?'/'+shiftNote(c.bassRoot,c.bassAcc,steps,c.system):'');
 }
 export function transpose(text,steps=0){return String(text).replace(/\[([^\]\n]+)\]/g,(token,label)=>isChord(label)?'['+transposeChord(label,steps)+']':token);}
+// Notation used by a chord sheet (first chord decides), and key labels in that notation.
+export function chordSystem(text){const m=String(text||'').match(/\[([^\]\n]+)\]/g)||[];for(const t of m){const c=parseChord(t.slice(1,-1));if(c)return c.system;}return 'en';}
+export function firstChord(text){const m=String(text||'').match(/\[([^\]\n]+)\]/g)||[];for(const t of m){if(isChord(t.slice(1,-1)))return t.slice(1,-1);}return '';}
+// Reference key of a sheet: the song's key when set, else its first chord (minor kept as « m »).
+export function baseKey(song){const k=song.musical_key||firstChord(song.chords);const c=parseChord(k);return c?{root:c.root,acc:c.acc,minor:/^m(?!aj)/.test(c.suffix),system:c.system}:null;}
+export function keyLabel(key,steps=0,system=key?.system||'en'){if(!key)return '';return shiftNote(key.root,key.acc,steps,system)+(key.minor?'m':'');}
+export const keyChoicesFor=(key,system)=>Array.from({length:12},(_,i)=>{const steps=i<=6?i:i-12;return {steps,label:keyLabel(key,steps,system)};}).sort((a,b)=>a.steps-b.steps);
 const SECTION=/^(refrain|couplet|pont|bridge|intro|outro|final|chorus|verse|pré-refrain|pre-refrain|pre-chorus|interlude|coda|instrumental|tag)\b/i;
 // ChordPro-style rendering: each chord sits above the syllable it is written before.
 export function chordMarkup(text,steps=0){

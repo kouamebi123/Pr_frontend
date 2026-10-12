@@ -1,4 +1,4 @@
-import { api,h,filterSongs,timeLabel,chordMarkup,transpose,moveItem,setlistCSV } from './lib.js';
+import { api,h,filterSongs,timeLabel,moveItem,setlistCSV } from './lib.js';
 import { icon } from './icons.js';
 import * as view from './views.js';
 import * as forms from './admin.js';
@@ -16,6 +16,10 @@ async function catalog(){let songs=[],offset=0,total=1;while(offset<total){const
 async function refresh(){const me=await api('/auth/me');s.user=me.user;s.registration=me.registration;
   if(s.user){const [cats,,dashboard,events]=await Promise.all([api('/categories'),catalog(),api('/dashboard'),api('/events')]);s.categories=cats.categories;s.dashboard=dashboard;s.events=events.events;}
   else{s.categories=[];s.songs=[];s.dashboard=null;s.events=[];s.searches=[];s.setlists=[];}}
+// Chosen key per song, remembered on this device.
+const storedKey=songId=>{try{const v=Number(localStorage.getItem('pr_key_'+songId));return Number.isInteger(v)&&Math.abs(v)<=6?v:0;}catch{return 0;}};
+function setTranspose(steps){s.transpose=steps;try{if(steps)localStorage.setItem('pr_key_'+s.song.id,String(steps));else localStorage.removeItem('pr_key_'+s.song.id);}catch{}
+  const panel=document.querySelector('#song-panel');if(panel)panel.innerHTML=view.songPanel(s,s.song,'chords');}
 const PUBLIC_PATHS=['welcome','login','register','pending'];
 function askNewPassword(){modal('Choisissez votre mot de passe','<p class="info-box warning">Vous êtes connecté avec un mot de passe provisoire. Choisissez maintenant votre mot de passe personnel.</p>'+forms.passwordForm());}
 function modal(title,content,wide=false){previousFocus=document.activeElement;modalRoot.innerHTML=`<div class="modal-backdrop"><section class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" aria-labelledby="modal-title"><header><h2 id="modal-title">${h(title)}</h2><button class="icon-button" data-action="close-modal" aria-label="Fermer">${icon('close')}</button></header><div class="modal-content">${content}</div></section></div>`;document.body.classList.add('modal-open');requestAnimationFrame(()=>modalRoot.querySelector('input:not([type="checkbox"]),select,textarea,button')?.focus());}
@@ -39,8 +43,8 @@ async function render({keepScroll=false}={}){
     else if(path.startsWith('song/')){const [,songId,tab]=path.split('/');
       // Same song already on screen: only swap the lower panel so the video / audio keeps playing.
       const panel=document.querySelector(`.song-page[data-song="${CSS.escape(songId)}"] #song-panel`);
-      if(panel&&s.song?.id===songId&&!params.has('view')&&!s.route.params.has('view')){s.transpose=0;panel.innerHTML=view.songPanel(s,s.song,tab);document.title=(panel.querySelector('h1')?.textContent||s.song.title)+' · Porteurs de Réveil';syncAudio();window.scrollTo({top:0});return;}
-      s.song=await api('/songs/'+encodeURIComponent(songId));s.transpose=0;content=view.songDetail(s,s.song,tab);}
+      if(panel&&s.song?.id===songId&&!params.has('view')&&!s.route.params.has('view')){s.transpose=storedKey(songId);panel.innerHTML=view.songPanel(s,s.song,tab);document.title=(panel.querySelector('h1')?.textContent||s.song.title)+' · Porteurs de Réveil';syncAudio();window.scrollTo({top:0});return;}
+      s.song=await api('/songs/'+encodeURIComponent(songId));s.transpose=storedKey(songId);content=view.songDetail(s,s.song,tab);}
     else if(path==='setlists'){if(!s.user)content=view.gate('Mes répertoires');else{s.setlists=(await api('/setlists')).setlists;content=view.setlists(s,s.setlists);}}
     else if(path.startsWith('setlist/')){if(!s.user)content=view.gate('Votre répertoire');else{s.detail=await api('/setlists/'+encodeURIComponent(path.split('/')[1]));content=view.setlistDetail(s,s.detail);}}
     else if(path==='calendar'){if(!s.user)content=view.gate('Événements','Connectez-vous pour préparer vos événements et consulter l’historique.');else{s.events=(await api('/events')).events;content=view.events(s,s.events);}}
@@ -93,7 +97,7 @@ const actions={
   'song-menu':()=>modal('Actions du chant',`<div class="menu-actions"><button class="reference-card" data-action="add-to-setlist" data-id="${h(s.song.id)}">${icon('plus')} Ajouter à un répertoire</button><a class="reference-card" href="#song/${h(s.song.id)}?view=${s.route.params.get('view')==='expanded'?'classic':'expanded'}" data-close-modal>${icon('file')} ${s.route.params.get('view')==='expanded'?'Vue lecteur':'Vue détaillée'}</a><a class="reference-card" href="#song/${h(s.song.id)}/history" data-close-modal>${icon('calendar')} Événements où le chant a été joué</a>${['admin','editor'].includes(s.user?.role)?`<button class="reference-card" data-action="edit-song" data-id="${h(s.song.id)}">${icon('edit')} Modifier le chant</button>`:''}</div>`),
   'font-up':()=>{s.fontSize=Math.min(36,s.fontSize+2);document.querySelector('#lyrics-reader').style.fontSize=s.fontSize+'px';},
   'font-down':()=>{s.fontSize=Math.max(14,s.fontSize-2);document.querySelector('#lyrics-reader').style.fontSize=s.fontSize+'px';},
-  transpose:el=>{s.transpose+=Number(el.dataset.step);document.querySelector('#chords-reader').innerHTML=chordMarkup(s.song.chords,s.transpose);document.querySelector('#transpose-count').textContent=(s.transpose>0?'+':'')+s.transpose;document.querySelector('#transposed-key').textContent=s.song.musical_key?transpose('['+s.song.musical_key+']',s.transpose).replace(/[\[\]]/g,''):'Non précisée';},
+  transpose:el=>setTranspose(((s.transpose||0)+Number(el.dataset.step)+6+12*4)%12-6),
   print:()=>window.print(),
   'clear-searches':async()=>{if(s.user)await api('/searches',{method:'DELETE'});else localStorage.removeItem('pr_recent');s.searches=[];await render({keepScroll:true});},
   'recent-search':el=>go('search?q='+encodeURIComponent(el.dataset.term)),
@@ -181,6 +185,7 @@ document.addEventListener('input',event=>{
 document.addEventListener('change',async event=>{
   const el=event.target;
   try{
+    if(el.id==='key-select'){setTranspose(Number(el.value));return;}
     if(el.dataset.filter){s.route.params.set(el.dataset.filter,el.value);go('songs?'+s.route.params);}
     if(el.id==='category-kind'){const parent=el.form.elements.parent_id;parent.disabled=el.value==='event';if(parent.disabled)parent.value='';}
     if(el.dataset.roleUser){await api('/admin/users/'+el.dataset.roleUser,{method:'PATCH',body:{role:el.value}});await refresh();await render({keepScroll:true});toast('Rôle mis à jour');}

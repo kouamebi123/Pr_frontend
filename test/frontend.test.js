@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { makeServer } from '../server.js';
-import { h,normalize,transpose,chordMarkup,filterSongs,setlistCSV,moveItem,safeLink,mediaSource,youtubeId } from '../src/lib.js';
+import { h,normalize,transpose,chordMarkup,filterSongs,setlistCSV,moveItem,safeLink,mediaSource,youtubeId,baseKey,keyLabel,keyChoicesFor } from '../src/lib.js';
 import * as view from '../src/views.js';
 import { songForm,setlistForm,adminPage,memberForm,temporaryPasswordView,coverPicker } from '../src/admin.js';
 import { logo } from '../src/icons.js';
@@ -68,6 +68,15 @@ test('the single reference link drives the player: audio, video, embeds or an ou
   const lyrics=view.songDetail(s,{...base,reference_url:'https://youtu.be/dQw4w9WgXcQ'},'lyrics');assert.ok(lyrics.includes('<iframe'));assert.ok(lyrics.includes('id="lyrics-reader"'));assert.ok(lyrics.includes('La la'));
   assert.ok(view.songDetail(s,{...base,reference_url:'https://deezer.com/x'}).includes('Écouter le chant de référence'));
   assert.ok(view.songDetail(s,{...base,reference_url:'javascript:alert(1)'}).includes('Lien du chant de référence à ajouter'));
+});
+test('the key picker lists every key in the sheet notation and remembers the chosen one',()=>{
+  const key=baseKey({musical_key:'G',chords:'[Sol]Il est'});assert.equal(keyLabel(key,0,'fr'),'Sol');assert.equal(keyLabel(key,2,'fr'),'La');assert.equal(keyLabel(key,-1,'en'),'F#');
+  assert.equal(keyLabel(baseKey({musical_key:'Em',chords:''}),3,'fr'),'Solm');
+  assert.equal(baseKey({musical_key:'',chords:'[Mim]Depuis'}).root,'Mi');assert.equal(baseKey({musical_key:'',chords:'aucun'}),null);
+  const choices=keyChoicesFor(key,'fr');assert.equal(choices.length,12);assert.equal(choices[0].steps,-5);assert.equal(choices.find(c=>c.steps===0).label,'Sol');
+  const s={user:{name:'A',role:'member'},categories:[],playingSong:null,route:{params:new URLSearchParams()},transpose:2};
+  const html=view.songDetail(s,{id:'s',title:'T',artist:'',categories:[],history:[],lyrics:'',chords:'[Sol]Il est né',musical_key:'G'},'chords');
+  assert.ok(html.includes('<option value="2" selected>La</option>'));assert.ok(html.includes('<b class="chord">La</b>'));assert.ok(html.includes('origine Sol'));
 });
 test('logo is a true vector monogram, not a pixel trace',()=>{
   const svg=logo();assert.ok(svg.includes('stroke="currentColor"'));assert.ok(!/h1v1|M\d+ \d+h\d+v1/.test(svg));assert.ok(svg.length<1500);
