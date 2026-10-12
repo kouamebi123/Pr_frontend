@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { makeServer } from '../server.js';
-import { h,normalize,transpose,chordMarkup,filterSongs,setlistCSV,moveItem,safeLink,mediaSource,youtubeId,baseKey,keyLabel,keyChoicesFor } from '../src/lib.js';
+import { h,normalize,transpose,chordMarkup,lyricsMarkup,filterSongs,setlistCSV,moveItem,safeLink,mediaSource,youtubeId,baseKey,keyLabel,keyChoicesFor } from '../src/lib.js';
 import * as view from '../src/views.js';
 import { songForm,setlistForm,adminPage,memberForm,temporaryPasswordView,coverPicker } from '../src/admin.js';
 import { logo } from '../src/icons.js';
@@ -77,6 +77,11 @@ test('the key picker lists every key in the sheet notation and remembers the cho
   const s={user:{name:'A',role:'member'},categories:[],playingSong:null,route:{params:new URLSearchParams()},transpose:2};
   const html=view.songDetail(s,{id:'s',title:'T',artist:'',categories:[],history:[],lyrics:'',chords:'[Sol]Il est né',musical_key:'G'},'chords');
   assert.ok(html.includes('<option value="2" selected>La</option>'));assert.ok(html.includes('<b class="chord">La</b>'));assert.ok(html.includes('origine Sol'));
+});
+test('lyrics turn bracketed or named sections into titles and escape the rest',()=>{
+  const out=lyricsMarkup('[Couplet 1]\nAu dessus de tous les noms\n\nRefrain\n<b>Tu es élevé</b>');
+  assert.ok(out.startsWith('<div class="cp-section">Couplet 1</div><div class="ly-line">Au dessus de tous les noms</div><div class="cp-gap"></div><div class="cp-section">Refrain</div>'));
+  assert.ok(out.includes('&lt;b&gt;Tu es élevé&lt;/b&gt;'));
 });
 test('logo is a true vector monogram, not a pixel trace',()=>{
   const svg=logo();assert.ok(svg.includes('stroke="currentColor"'));assert.ok(!/h1v1|M\d+ \d+h\d+v1/.test(svg));assert.ok(svg.length<1500);

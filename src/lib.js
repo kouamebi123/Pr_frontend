@@ -31,6 +31,14 @@ export function baseKey(song){const k=song.musical_key||firstChord(song.chords);
 export function keyLabel(key,steps=0,system=key?.system||'en'){if(!key)return '';return shiftNote(key.root,key.acc,steps,system)+(key.minor?'m':'');}
 export const keyChoicesFor=(key,system)=>Array.from({length:12},(_,i)=>{const steps=i<=6?i:i-12;return {steps,label:keyLabel(key,steps,system)};}).sort((a,b)=>a.steps-b.steps);
 const SECTION=/^(refrain|couplet|pont|bridge|intro|outro|final|chorus|verse|pré-refrain|pre-refrain|pre-chorus|interlude|coda|instrumental|tag)\b/i;
+// Lyrics: « [Couplet 1] », « Refrain »… become section titles; blank lines separate blocks.
+export function lyricsMarkup(text){
+  return String(text).split('\n').map(line=>{
+    const plain=line.trim();if(!plain)return '<div class="cp-gap"></div>';
+    const label=plain.match(/^\[([^\]]+)\]$/)?.[1]||(SECTION.test(plain)&&plain.length<=40?plain:'');
+    return label?`<div class="cp-section">${h(label)}</div>`:`<div class="ly-line">${h(line)}</div>`;
+  }).join('');
+}
 // ChordPro-style rendering: each chord sits above the syllable it is written before.
 export function chordMarkup(text,steps=0){
   return String(text).split('\n').map(line=>{
