@@ -32,3 +32,26 @@ export function csvCell(value){let s=String(value??'');if(/^[=+\-@\t\r]/.test(s)
 export function setlistCSV(list){return '\ufeff'+[['Ordre','Chant','Artiste','Tonalité','Notes'],...list.items.map((item,index)=>[index+1,item.title,item.artist,item.musical_key,item.notes])].map(row=>row.map(csvCell).join(';')).join('\r\n');}
 export function moveItem(items,itemId,direction){const next=[...items];const index=next.findIndex(x=>x.id===itemId);const target=index+direction;if(index<0||target<0||target>=next.length)return next;[next[index],next[target]]=[next[target],next[index]];return next;}
 export function safeLink(value){try{const u=new URL(value,globalThis.location?.origin||'http://localhost');return ['http:','https:'].includes(u.protocol)?h(value):'#';}catch{return '#';}}
+
+// YouTube video id from watch / youtu.be / shorts / embed / live URLs, else ''.
+export function youtubeId(value){
+  try{const u=new URL(String(value||''));const host=u.hostname.replace(/^(www|m|music)\./,'');
+    if(host==='youtu.be')return /^[\w-]{11}$/.test(u.pathname.slice(1))?u.pathname.slice(1):'';
+    if(host!=='youtube.com'&&host!=='youtube-nocookie.com')return '';
+    const v=u.searchParams.get('v');if(v&&/^[\w-]{11}$/.test(v))return v;
+    const m=u.pathname.match(/^\/(?:embed|shorts|live|v)\/([\w-]{11})/);return m?m[1]:'';
+  }catch{return '';}
+}
+export const isVideoFile=value=>/\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(String(value||''));
+// What the song page should play, in the order wanted by the group:
+// audio file → video (uploaded file or YouTube) → reference link (YouTube or any site).
+export function mediaSource(song){
+  if(song.audio_url)return {kind:'audio',url:song.audio_url,label:'Audio de référence'};
+  for(const [url,label] of [[song.video_url,'Vidéo de référence'],[song.reference_url,'Chant de référence']]){
+    if(!url)continue;const yt=youtubeId(url);
+    if(yt)return {kind:'youtube',url,id:yt,embed:'https://www.youtube-nocookie.com/embed/'+yt+'?rel=0',label};
+    if(isVideoFile(url))return {kind:'video',url,label};
+    return {kind:'link',url,label};
+  }
+  return {kind:'none',url:'',label:'Aucun média'};
+}

@@ -51,3 +51,28 @@
   .song-topbar{margin-bottom:12px}
   .expanded .large-cover{height:260px;aspect-ratio:auto}
 }
+
+/* ——— Lecture en cascade : audio → vidéo / YouTube → lien de référence ——— */
+.video-frame{display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:18px;background:#1b0b33;box-shadow:0 16px 50px #31184b20;object-fit:cover}
+.song-visual.has-media{align-self:start}
+.media-note{order:2;display:flex;align-items:center;gap:9px;margin:4px 0 22px;font-size:12px;color:var(--muted)}
+.media-note .icon{width:18px;height:18px;color:var(--purple);flex-shrink:0}
+.player.media-link{display:flex;align-items:center;gap:15px;border:1px solid var(--line);background:var(--white);padding:16px 18px;border-radius:12px;text-align:left;font-size:14px;flex-wrap:nowrap}
+.player.media-link>span{flex:1;min-width:0;overflow-wrap:anywhere}
+.player.media-link b,.player.media-link small{display:block}
+.player.media-link small{font-size:11px;color:var(--muted);margin-top:4px}
+.player.media-link>.icon{color:var(--purple);width:22px;height:22px;flex-shrink:0}
+.player.media-link>.icon:last-child{width:16px;height:16px}
+.player.media-link:hover{background:var(--pale)}
+@media(max-width:760px){
+  .song-visual.has-media{max-width:none;margin:0 0 14px}
+  .video-frame{border-radius:12px;box-shadow:none}
+  .media-note{justify-content:center;text-align:center;margin:0 0 14px}
+  .expanded .song-visual.has-media{height:auto;margin:0 0 14px;padding:0 25px}
+  .expanded .video-frame{height:auto;border-radius:12px}
+}
+.video-frame iframe{display:block;width:100%;height:100%;border:0;border-radius:inherit}
+@media(max-width:760px){
+  .player.media-link{flex-direction:row;align-items:center;gap:13px;padding:14px 15px;margin:0 0 16px}
+  .player.media-link b{font-size:13px}
+}

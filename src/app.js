@@ -182,7 +182,9 @@ document.addEventListener('change',async event=>{
     if(el.dataset.upload&&el.files[0]){
       const file=el.files[0];if(file.size>25*1024*1024)throw new Error('Ce fichier dépasse la limite de 25 Mo.');
       const field=el.dataset.upload,form=el.closest('form'),status=form.querySelector(`[data-upload-status="${field}"]`);uploadCount++;form.querySelector('[type="submit"]').disabled=true;status.textContent='Import en cours…';
-      try{const upload=await api('/uploads',{method:'POST',body:file,headers:{'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)}});form.elements[field].value=upload.url;status.textContent='Fichier importé : '+file.name;}
+      try{const upload=await api('/uploads',{method:'POST',body:file,headers:{'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)}});if(field==='audio_url'&&!upload.mime.startsWith('audio/'))throw new Error('Le champ audio n’accepte que des fichiers audio (MP3, WAV, OGG). Importez la vidéo dans le champ Vidéo.');
+        if(field==='video_url'&&!upload.mime.startsWith('video/'))throw new Error('Le champ vidéo n’accepte qu’un fichier MP4 ou un lien YouTube.');
+        form.elements[field].value=upload.url;status.textContent='Fichier importé : '+file.name;}
       catch(error){status.textContent=error.message;throw error;}finally{uploadCount--;form.querySelector('[type="submit"]').disabled=uploadCount>0;}
     }
   }catch(error){toast(error.message,true);if(el.dataset.roleUser)await render({keepScroll:true});}

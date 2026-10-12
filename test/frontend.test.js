@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { makeServer } from '../server.js';
-import { h,normalize,transpose,chordMarkup,filterSongs,setlistCSV,moveItem,safeLink } from '../src/lib.js';
+import { h,normalize,transpose,chordMarkup,filterSongs,setlistCSV,moveItem,safeLink,mediaSource,youtubeId } from '../src/lib.js';
 import * as view from '../src/views.js';
 import { songForm,setlistForm,adminPage,memberForm,temporaryPasswordView } from '../src/admin.js';
 import { logo } from '../src/icons.js';
@@ -45,6 +45,23 @@ test('screens expose the reference navigation plus repertoire and administrative
   assert.ok(members.includes('data-action="approve-member"'));assert.ok(!members.includes('<b>Paul</b>'));assert.ok(!members.includes('data-action="member-menu" data-id="me"'));
   assert.ok(!temporaryPasswordView({name:'<i>x</i>',email:'e'},'<pw>').includes('<pw>'));
   const malicious=view.songRows([{id:'safe',title:'<script>evil</script>',artist:'Test'}]);assert.ok(!malicious.includes('<script>'));
+});
+test('song page plays audio first, then video or YouTube, then the reference link',()=>{
+  assert.equal(youtubeId('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10'),'dQw4w9WgXcQ');assert.equal(youtubeId('https://youtu.be/dQw4w9WgXcQ'),'dQw4w9WgXcQ');assert.equal(youtubeId('https://youtube.com/shorts/dQw4w9WgXcQ'),'dQw4w9WgXcQ');assert.equal(youtubeId('https://example.com/watch?v=dQw4w9WgXcQ'),'');
+  const yt='https://youtu.be/dQw4w9WgXcQ';
+  assert.equal(mediaSource({audio_url:'/api/media/a.mp3',video_url:yt}).kind,'audio');
+  assert.equal(mediaSource({video_url:yt,reference_url:'https://x.fr'}).kind,'youtube');
+  assert.equal(mediaSource({video_url:'/api/media/v.mp4'}).kind,'video');
+  assert.equal(mediaSource({reference_url:yt}).embed,'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0');
+  assert.equal(mediaSource({reference_url:'https://deezer.com/x'}).kind,'link');
+  assert.equal(mediaSource({}).kind,'none');
+  const s={user:{name:'A',role:'member'},categories:[],playingSong:null,route:{params:new URLSearchParams()}};
+  const base={id:'s',title:'T',artist:'A',categories:[],history:[],lyrics:'',chords:''};
+  assert.ok(view.songDetail(s,{...base,reference_url:yt}).includes('<iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0"'));
+  assert.ok(view.songDetail(s,{...base,video_url:'/api/media/v.mp4'}).includes('<video class="video-frame"'));
+  assert.ok(view.songDetail(s,{...base,reference_url:'https://deezer.com/x'}).includes('Écouter le chant de référence'));
+  assert.ok(view.songDetail(s,{...base,audio_url:'/api/media/a.mp3'}).includes('id="audio-progress"'));
+  assert.ok(view.songDetail(s,{...base,reference_url:'javascript:alert(1)'}).includes('href="#"'));
 });
 test('logo is a true vector monogram, not a pixel trace',()=>{
   const svg=logo();assert.ok(svg.includes('stroke="currentColor"'));assert.ok(!/h1v1|M\d+ \d+h\d+v1/.test(svg));assert.ok(svg.length<1500);
