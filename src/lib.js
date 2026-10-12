@@ -5,16 +5,45 @@ export const shortDate=value=>value?new Intl.DateTimeFormat('fr-FR',{day:'2-digi
 export const timeLabel=seconds=>`${Math.floor((seconds||0)/60)}:${String(Math.floor((seconds||0)%60)).padStart(2,'0')}`;
 export const keyChoices=['','C','C#','Db','D','D#','Eb','E','F','F#','Gb','G','G#','Ab','A','A#','Bb','B','Cm','C#m','Dm','Ebm','Em','Fm','F#m','Gm','G#m','Am','Bbm','Bm'];
 export const statusLabel=value=>({draft:'Brouillon',ready:'Prêt',completed:'Joué',planned:'À venir',cancelled:'Annulé'})[value]||value;
-const chordPattern=/^([A-G][#b]?)((?:(?:maj|min|dim|aug|sus|add|omit|no|m|M|Δ|°|ø|\+|-|\d+|[#b]\d+|\((?:[#b]?\d+,?)+\)))*)((?:\/[A-G][#b]?)?)$/;
-export function transpose(text,steps=0){
-  const notes=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'],natural={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
-  const shift=note=>steps%12===0?note:notes[(natural[note[0]]+(note[1]==='#'?1:note[1]==='b'?-1:0)+steps%12+24)%12];
-  return String(text).replace(/\[([^\]\n]+)\]/g,(token,label)=>{
-    const match=label.match(chordPattern);if(!match)return token;
-    const [,root,suffix,bass]=match;return '['+shift(root)+suffix+(bass?'/'+shift(bass.slice(1)):'')+']';
-  });
+// Chords between brackets, in English (C, Am7, G/B) or French (Do, Lam7, Sol/Si) notation.
+const SUFFIX='((?:(?:maj|min|dim|aug|sus|add|omit|no|m|M|Δ|°|ø|\\+|-|\\d+|[#b]\\d+|\\((?:[#b]?\\d+,?)+\\)))*)';
+const ROOT='(Do|Ré|Re|Mi|Fa|Sol|La|Si|[A-G])([#b]?)';
+const chordPattern=new RegExp('^'+ROOT+SUFFIX+'(?:\\/'+ROOT+')?$');
+const SEMITONE={C:0,D:2,E:4,F:5,G:7,A:9,B:11,Do:0,Re:2,'Ré':2,Mi:4,Fa:5,Sol:7,La:9,Si:11};
+const NAMES={en:['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'],fr:['Do','Do#','Ré','Ré#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si']};
+export function parseChord(label){
+  const m=String(label).match(chordPattern);if(!m)return null;
+  const [,root,acc,suffix,bassRoot,bassAcc]=m;
+  return {root,acc,suffix,bassRoot:bassRoot||'',bassAcc:bassAcc||'',system:root.length>1?'fr':'en'};
 }
-export function chordMarkup(text,steps=0){return h(transpose(text,steps)).replace(/\[([^\]\n]+)\]/g,(token,label)=>chordPattern.test(label)?'<b class="chord">'+label+'</b>':token);}
+export const isChord=label=>!!parseChord(label);
+const shiftNote=(root,acc,steps,system)=>NAMES[system][(SEMITONE[root]+(acc==='#'?1:acc==='b'?-1:0)+steps%12+24)%12];
+export function transposeChord(label,steps=0){
+  const c=parseChord(label);if(!c||steps%12===0)return label;
+  return shiftNote(c.root,c.acc,steps,c.system)+c.suffix+(c.bassRoot?'/'+shiftNote(c.bassRoot,c.bassAcc,steps,c.system):'');
+}
+export function transpose(text,steps=0){return String(text).replace(/\[([^\]\n]+)\]/g,(token,label)=>isChord(label)?'['+transposeChord(label,steps)+']':token);}
+const SECTION=/^(refrain|couplet|pont|bridge|intro|outro|final|chorus|verse|pré-refrain|pre-refrain|pre-chorus|interlude|coda|instrumental|tag)\b/i;
+// ChordPro-style rendering: each chord sits above the syllable it is written before.
+export function chordMarkup(text,steps=0){
+  return String(text).split('\n').map(line=>{
+    const tokens=line.split(/(\[[^\]\n]+\])/);
+    const hasChord=tokens.some(t=>t.startsWith('[')&&isChord(t.slice(1,-1)));
+    const plain=line.trim();
+    if(!hasChord){
+      if(!plain)return '<div class="cp-gap"></div>';
+      const label=plain.match(/^\[([^\]]+)\]$/)?.[1]||(SECTION.test(plain)?plain:'');
+      return label?`<div class="cp-section">${h(label)}</div>`:`<div class="cp-line"><span class="cp-seg"><b class="chord blank"></b><span>${h(line)}</span></span></div>`;
+    }
+    const segments=[];let chord='';
+    for(const t of tokens){
+      if(t.startsWith('[')&&t.endsWith(']')&&isChord(t.slice(1,-1))){if(chord)segments.push({chord,text:''});chord=transposeChord(t.slice(1,-1),steps);}
+      else if(t){segments.push({chord,text:t});chord='';}
+    }
+    if(chord)segments.push({chord,text:''});
+    return `<div class="cp-line">${segments.map(x=>`<span class="cp-seg"><b class="chord${x.chord?'':' blank'}">${h(x.chord)}</b><span>${h(x.text)}</span></span>`).join('')}</div>`;
+  }).join('');
+}
 export function filterSongs(songs,categories,{q='',category='',style='',event='',favorites=false}={}){
   let result=songs.filter(s=>!s.archived&&(!favorites||s.favorite));const query=normalize(q);
   if(query)result=result.filter(s=>normalize(`${s.title} ${s.artist} ${s.lyrics} ${s.notes} ${s.language} ${s.categories.map(id=>categories.find(c=>c.id===id)?.name||'').join(' ')}`).includes(query));

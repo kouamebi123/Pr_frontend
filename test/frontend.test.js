@@ -18,7 +18,11 @@ test('musical transposition handles sharps, flats, minor suffixes and slash bass
   assert.equal(transpose('[Bb] [F/A]',-1),'[A] [E/G#]');
   assert.equal(transpose('[Couplet]\n[C] Bonjour',-12),'[Couplet]\n[C] Bonjour');
   assert.equal(transpose('[Couplet] [Bridge] [Cmaj7] [Gsus4] [Am7b5] [C7(b9)]',1),'[Couplet] [Bridge] [C#maj7] [G#sus4] [A#m7b5] [C#7(b9)]');
-  assert.ok(chordMarkup('[Couplet]\n[C] Bonjour',1).startsWith('[Couplet]\n<b class="chord">C#</b>'));
+  const sheet=chordMarkup('[Couplet]\n[C] Bonjour',1);assert.ok(sheet.startsWith('<div class="cp-section">Couplet</div>'));assert.ok(sheet.includes('<b class="chord">C#</b><span> Bonjour</span>'));
+  // French notation: recognised, transposed in French, laid out above the syllables.
+  assert.equal(transpose('[Sol]Il est né le di[Ré]vin En[Sol]fant [Mim] [Sib] [Lam7/Do]',2),'[La]Il est né le di[Mi]vin En[La]fant [Fa#m] [Do] [Sim7/Ré]');
+  const fr=chordMarkup('Refrain\n[Sol]Il est né le di[Ré]vin En[Sol]fant\nUne ligne de paroles seule.');
+  assert.ok(fr.startsWith('<div class="cp-section">Refrain</div>'));assert.ok(fr.includes('<b class="chord">Ré</b><span>vin En</span>'));assert.ok(fr.includes('<b class="chord blank"></b><span>Une ligne de paroles seule.</span>'));
   assert.equal(transpose('[Bb] [F/A]',0),'[Bb] [F/A]');
   assert.equal(transpose('[F#m7] [Eb/G]',1),'[Gm7] [E/G#]');
 });
