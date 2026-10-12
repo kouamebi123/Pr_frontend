@@ -76,6 +76,7 @@ test('the key picker lists every key in the sheet notation and remembers the cho
   const choices=keyChoicesFor(key,'fr');assert.equal(choices.length,12);assert.equal(choices[0].steps,-5);assert.equal(choices.find(c=>c.steps===0).label,'Sol');
   const s={user:{name:'A',role:'member'},categories:[],playingSong:null,route:{params:new URLSearchParams()},transpose:2};
   const html=view.songDetail(s,{id:'s',title:'T',artist:'',categories:[],history:[],lyrics:'',chords:'[Sol]Il est né',musical_key:'G'},'chords');
+  const info=view.songDetail(s,{id:'s',title:'T',artist:'',categories:[],history:[],lyrics:'',chords:'[Sol]Il est né',musical_key:'G',tempo:158});assert.ok(info.includes('Tonalité Sol'));assert.ok(info.includes('Jouée en La'));assert.ok(info.includes('158 BPM'));
   assert.ok(html.includes('<option value="2" selected>La</option>'));assert.ok(html.includes('<b class="chord">La</b>'));assert.ok(html.includes('origine Sol'));
 });
 test('lyrics turn bracketed or named sections into titles and escape the rest',()=>{

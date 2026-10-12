@@ -134,3 +134,8 @@
 #lyrics-reader .cp-section{font-size:.85em;margin:22px 0 8px}
 #lyrics-reader .cp-section:first-child{margin-top:0}
 #lyrics-reader .cp-gap{height:12px}
+
+/* ——— Tonalité d'origine et tonalité jouée sur la fiche ——— */
+.pill.key{background:#efe6f7;color:var(--purple);font-weight:600}
+.pill.key.chosen{background:var(--purple);color:#fff}
+@media(max-width:760px){.song-meta{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;order:1;margin:-2px 0 12px}.song-meta:empty{display:none}}
