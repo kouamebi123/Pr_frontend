@@ -36,7 +36,11 @@ async function render({keepScroll=false}={}){
     else if(path==='events'||path==='styles')content=view.categories(s,path==='events'?'event':'style');
     else if(path==='songs'||path==='favorites')content=view.songList(s,params,path==='favorites');
     else if(path==='search'){s.searches=s.user?(await api('/searches')).searches:localSearches();content=view.search(s,params.get('q')||'');}
-    else if(path.startsWith('song/')){const [,songId,tab]=path.split('/');s.song=await api('/songs/'+encodeURIComponent(songId));s.transpose=0;content=view.songDetail(s,s.song,tab);}
+    else if(path.startsWith('song/')){const [,songId,tab]=path.split('/');
+      // Same song already on screen: only swap the lower panel so the video / audio keeps playing.
+      const panel=document.querySelector(`.song-page[data-song="${CSS.escape(songId)}"] #song-panel`);
+      if(panel&&s.song?.id===songId&&!params.has('view')&&!s.route.params.has('view')){s.transpose=0;panel.innerHTML=view.songPanel(s,s.song,tab);document.title=(panel.querySelector('h1')?.textContent||s.song.title)+' · Porteurs de Réveil';syncAudio();window.scrollTo({top:0});return;}
+      s.song=await api('/songs/'+encodeURIComponent(songId));s.transpose=0;content=view.songDetail(s,s.song,tab);}
     else if(path==='setlists'){if(!s.user)content=view.gate('Mes répertoires');else{s.setlists=(await api('/setlists')).setlists;content=view.setlists(s,s.setlists);}}
     else if(path.startsWith('setlist/')){if(!s.user)content=view.gate('Votre répertoire');else{s.detail=await api('/setlists/'+encodeURIComponent(path.split('/')[1]));content=view.setlistDetail(s,s.detail);}}
     else if(path==='calendar'){if(!s.user)content=view.gate('Événements','Connectez-vous pour préparer vos événements et consulter l’historique.');else{s.events=(await api('/events')).events;content=view.events(s,s.events);}}
@@ -157,7 +161,7 @@ document.addEventListener('submit',async event=>{
       if(s.user.must_change_password)setTimeout(askNewPassword,150);else toast('Heureux de vous retrouver');}
     if(kind==='member'){const r=await api('/admin/users',{method:'POST',body:data});modal('Compte créé',forms.temporaryPasswordView(r.user,r.temporary_password));s.admin=await api('/admin');}
     if(kind==='search'){await remember(data.q);history.replaceState(null,'','#search?q='+encodeURIComponent(data.q));await render({keepScroll:true});}
-    if(kind==='song'){data.categories=new FormData(form).getAll('categories');data.tempo=Number(data.tempo)||0;data.duration=Number(data.duration)||0;data.version=Number(form.dataset.version);const id=form.dataset.id;const song=await api('/songs'+(id?'/'+id:''),{method:id?'PUT':'POST',body:data});closeModal();await catalog();go('song/'+song.id);await render();toast(id?'Chant mis à jour':'Chant ajouté au catalogue');}
+    if(kind==='song'){data.categories=new FormData(form).getAll('categories');data.audio_url='';data.video_url='';data.tempo=Number(data.tempo)||0;data.duration=Number(data.duration)||0;data.version=Number(form.dataset.version);const id=form.dataset.id;const song=await api('/songs'+(id?'/'+id:''),{method:id?'PUT':'POST',body:data});closeModal();await catalog();go('song/'+song.id);await render();toast(id?'Chant mis à jour':'Chant ajouté au catalogue');}
     if(kind==='category'){const id=form.dataset.id;if(data.kind==='event')data.parent_id='';await api('/categories'+(id?'/'+id:''),{method:id?'PATCH':'POST',body:data});closeModal();s.categories=(await api('/categories')).categories;await render({keepScroll:true});toast('Catégorie enregistrée');}
     if(kind==='setlist'){const id=form.dataset.id;data.version=Number(form.dataset.version);let list=await api('/setlists'+(id?'/'+id:''),{method:id?'PUT':'POST',body:data});if(pendingSongId){list=await api('/setlists/'+list.id+'/items',{method:'POST',body:{song_id:pendingSongId,version:list.version}});pendingSongId='';}closeModal();go('setlist/'+list.id);await render({keepScroll:!!id});toast(id?'Répertoire mis à jour':'Répertoire créé');}
     if(kind==='item'){data.version=s.detail.version;s.detail=await api('/setlists/'+s.detail.id+'/items/'+form.dataset.id,{method:'PATCH',body:data});closeModal();await render({keepScroll:true});toast('Tonalité et notes enregistrées');}
@@ -183,9 +187,7 @@ document.addEventListener('change',async event=>{
     if(el.dataset.upload&&el.files[0]){
       const file=el.files[0];if(file.size>25*1024*1024)throw new Error('Ce fichier dépasse la limite de 25 Mo.');
       const field=el.dataset.upload,form=el.closest('form'),status=form.querySelector(`[data-upload-status="${field}"]`);uploadCount++;form.querySelector('[type="submit"]').disabled=true;status.textContent='Import en cours…';
-      try{const upload=await api('/uploads',{method:'POST',body:file,headers:{'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)}});if(field==='audio_url'&&!upload.mime.startsWith('audio/'))throw new Error('Le champ audio n’accepte que des fichiers audio (MP3, WAV, OGG). Importez la vidéo dans le champ Vidéo.');
-        if(field==='video_url'&&!upload.mime.startsWith('video/'))throw new Error('Le champ vidéo n’accepte qu’un fichier MP4 ou un lien YouTube.');
-        form.elements[field].value=upload.url;status.textContent='Fichier importé : '+file.name;
+      try{const upload=await api('/uploads',{method:'POST',body:file,headers:{'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)}});form.elements[field].value=upload.url;status.textContent='Fichier importé : '+file.name;
         if(field==='cover'){const picker=el.closest('.cover-picker');picker.querySelector('#cover-preview').src=upload.url;picker.querySelector('.cover-current b').textContent='Pochette importée';picker.querySelector('#cover-status').textContent=file.name;picker.querySelectorAll('.cover-choice').forEach(b=>{b.classList.remove('selected');b.setAttribute('aria-checked','false');});}}
       catch(error){status.textContent=error.message;throw error;}finally{uploadCount--;form.querySelector('[type="submit"]').disabled=uploadCount>0;}
     }

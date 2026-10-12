@@ -42,20 +42,24 @@ export function youtubeId(value){
     const m=u.pathname.match(/^\/(?:embed|shorts|live|v)\/([\w-]{11})/);return m?m[1]:'';
   }catch{return '';}
 }
-export const isVideoFile=value=>/\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(String(value||''));
-// What the song page should play, in the order wanted by the group:
-// audio file → video (uploaded file or YouTube) → reference link (YouTube or any site).
+export const isVideoFile=value=>/\.(mp4|webm|mov|m4v|ogv)(\?|#|$)/i.test(String(value||''));
+export const isAudioFile=value=>/\.(mp3|wav|ogg|oga|m4a|aac|flac|opus)(\?|#|$)/i.test(String(value||''));
+// What the song page plays, from the single « lien du chant de référence » (legacy audio/video
+// fields still honoured): audio file → audio player; video file → video; YouTube / TikTok /
+// Instagram → embedded player; any other site → a card that opens the link.
 export function mediaSource(song){
-  if(song.audio_url)return {kind:'audio',url:song.audio_url,label:'Audio de référence'};
-  for(const [url,label] of [[song.video_url,'Vidéo de référence'],[song.reference_url,'Chant de référence']]){
-    if(!url)continue;const yt=youtubeId(url);
-    if(yt)return {kind:'youtube',url,id:yt,embed:'https://www.youtube-nocookie.com/embed/'+yt+'?rel=0',label};
-    if(isVideoFile(url))return {kind:'video',url,label};
-    return {kind:'link',url,label};
-  }
-  return {kind:'none',url:'',label:'Aucun média'};
+  const url=song.audio_url||song.video_url||song.reference_url||'';
+  if(!url)return {kind:'none',url:'',label:'Aucun média'};
+  if(isAudioFile(url))return {kind:'audio',url,label:'Audio de référence'};
+  if(isVideoFile(url))return {kind:'video',url,label:'Vidéo de référence'};
+  const yt=youtubeId(url);if(yt)return {kind:'embed',url,embed:'https://www.youtube-nocookie.com/embed/'+yt+'?rel=0',label:'Vidéo YouTube'};
+  let u;try{u=new URL(url);}catch{return {kind:'none',url:'',label:'Aucun média'};}
+  if(!['http:','https:'].includes(u.protocol))return {kind:'none',url:'',label:'Aucun média'};
+  const host=u.hostname.replace(/^(www|m|vm)\./,'');
+  const tt=host==='tiktok.com'&&u.pathname.match(/\/video\/(\d+)/);if(tt)return {kind:'embed',url,embed:'https://www.tiktok.com/player/v1/'+tt[1]+'?rel=0',label:'Vidéo TikTok'};
+  const ig=host==='instagram.com'&&u.pathname.match(/^\/(?:p|reel|reels|tv)\/([\w-]+)/);if(ig)return {kind:'embed',url,embed:'https://www.instagram.com/p/'+ig[1]+'/embed/',label:'Publication Instagram'};
+  return {kind:'link',url,host,label:'Chant de référence'};
 }
-
 // Covers offered by the application (sharp 1200 px artwork shipped with the front).
 export const COVERS=[['purple','Violet'],['gold','Doré'],['night','Nuit'],['rose','Rose'],['ocean','Océan'],['forest','Forêt'],['ember','Braise'],['dawn','Aurore']].map(([k,label])=>({url:`/assets/cover-${k}.jpg`,label}));
 export const DEFAULT_COVER=COVERS[0].url;

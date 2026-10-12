@@ -93,3 +93,14 @@
 .cover-current img{width:54px;height:54px;object-fit:cover;border-radius:8px;flex-shrink:0}
 .cover-current>span:nth-child(2){flex:1;min-width:140px}
 .cover-current b{display:block;font-size:13px}.cover-current small{display:block;font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+
+/* ——— Lecteur conservé pendant la lecture des paroles / accords ——— */
+.reader-head{display:flex;align-items:center;gap:12px;margin:0 0 18px}
+.reader-head h1{font-size:22px;margin:0 0 3px;letter-spacing:-.3px}
+.reader-head p{margin:0;font-size:12px;color:var(--muted)}
+#song-panel .reader-card{margin:0}
+@media(max-width:760px){
+  .reader-head{margin:0 0 12px}
+  .reader-head h1{font-size:19px}
+  .song-page .song-visual.has-media{position:sticky;top:0;z-index:2;background:var(--cream);padding-top:6px;padding-bottom:8px;margin-bottom:8px}
+}

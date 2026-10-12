@@ -10,7 +10,7 @@ export function makeServer({root=fileURLToPath(new URL('.',import.meta.url)),api
   const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.json':'application/json','.webmanifest':'application/manifest+json','.woff2':'font/woff2'};
   return createServer((req,res)=>{
     res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');
-    res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: http: data:; media-src 'self' https: http: blob:; connect-src 'self'; object-src 'none'; frame-src https://www.youtube-nocookie.com https://www.youtube.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+    res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: http: data:; media-src 'self' https: http: blob:; connect-src 'self'; object-src 'none'; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.tiktok.com https://www.instagram.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
     res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');
     if(production)res.setHeader('Strict-Transport-Security','max-age=31536000');
     let path;try{path=decodeURIComponent(new URL(req.url,'http://localhost').pathname);}catch{res.writeHead(400);res.end('URL non valide');return;}

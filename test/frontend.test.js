@@ -37,7 +37,7 @@ test('reordering keeps all songs and CSV neutralizes spreadsheet formula injecti
 test('screens expose the reference navigation plus repertoire and administrative forms',()=>{
   const s={user:{name:'Alice',role:'admin'},songs:[],categories:[{id:'ev',name:'CGA',kind:'event',color:'#351164',icon:'calendar'},{id:'style',name:'Louange',kind:'style',color:'#351164',icon:'music'}],events:[],route:{params:new URLSearchParams()},searches:[],dashboard:null};
   const home=view.home(s);for(const href of ['#events','#styles','#search','#favorites','#songs','#setlists'])assert.ok(home.includes(href));
-  const form=songForm(s);for(const name of ['title','artist','lyrics','chords','audio_url','video_url','reference_url','categories'])assert.ok(form.includes(`name="${name}"`));
+  const form=songForm(s);for(const name of ['title','artist','lyrics','chords','reference_url','categories'])assert.ok(form.includes(`name="${name}"`));assert.ok(!form.includes('name="audio_url"'));assert.ok(!form.includes('name="video_url"'));
   assert.ok(setlistForm(s).includes('name="event_id"'));
   const picker=coverPicker('/assets/cover-gold.jpg');assert.equal((picker.match(/class="cover-choice/g)||[]).length,8);assert.ok(picker.includes('data-cover="/assets/cover-gold.jpg" role="radio" aria-checked="true"'));assert.ok(coverPicker('/api/media/x.jpg').includes('Pochette importée'));
   assert.ok(!view.songList(s,new URLSearchParams(),true).includes('data-action="new-song"'),'pas de bouton « + » sur Mes favoris');
@@ -47,22 +47,23 @@ test('screens expose the reference navigation plus repertoire and administrative
   assert.ok(!temporaryPasswordView({name:'<i>x</i>',email:'e'},'<pw>').includes('<pw>'));
   const malicious=view.songRows([{id:'safe',title:'<script>evil</script>',artist:'Test'}]);assert.ok(!malicious.includes('<script>'));
 });
-test('song page plays audio first, then video or YouTube, then the reference link',()=>{
-  assert.equal(youtubeId('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10'),'dQw4w9WgXcQ');assert.equal(youtubeId('https://youtu.be/dQw4w9WgXcQ'),'dQw4w9WgXcQ');assert.equal(youtubeId('https://youtube.com/shorts/dQw4w9WgXcQ'),'dQw4w9WgXcQ');assert.equal(youtubeId('https://example.com/watch?v=dQw4w9WgXcQ'),'');
-  const yt='https://youtu.be/dQw4w9WgXcQ';
-  assert.equal(mediaSource({audio_url:'/api/media/a.mp3',video_url:yt}).kind,'audio');
-  assert.equal(mediaSource({video_url:yt,reference_url:'https://x.fr'}).kind,'youtube');
-  assert.equal(mediaSource({video_url:'/api/media/v.mp4'}).kind,'video');
-  assert.equal(mediaSource({reference_url:yt}).embed,'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0');
-  assert.equal(mediaSource({reference_url:'https://deezer.com/x'}).kind,'link');
+test('the single reference link drives the player: audio, video, embeds or an outbound card',()=>{
+  assert.equal(youtubeId('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10'),'dQw4w9WgXcQ');assert.equal(youtubeId('https://youtu.be/dQw4w9WgXcQ'),'dQw4w9WgXcQ');assert.equal(youtubeId('https://example.com/watch?v=dQw4w9WgXcQ'),'');
+  assert.equal(mediaSource({reference_url:'https://x.fr/chant.mp3'}).kind,'audio');
+  assert.equal(mediaSource({reference_url:'/api/media/v.mp4'}).kind,'video');
+  assert.equal(mediaSource({reference_url:'https://youtu.be/dQw4w9WgXcQ'}).embed,'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0');
+  assert.equal(mediaSource({reference_url:'https://www.tiktok.com/@louange/video/7312345678901234567'}).embed,'https://www.tiktok.com/player/v1/7312345678901234567?rel=0');
+  assert.equal(mediaSource({reference_url:'https://www.instagram.com/reel/Cx1_abc/'}).embed,'https://www.instagram.com/p/Cx1_abc/embed/');
+  assert.equal(mediaSource({reference_url:'https://deezer.com/x'}).kind,'link');assert.equal(mediaSource({audio_url:'/api/media/a.mp3'}).kind,'audio','legacy field still honoured');
   assert.equal(mediaSource({}).kind,'none');
   const s={user:{name:'A',role:'member'},categories:[],playingSong:null,route:{params:new URLSearchParams()}};
-  const base={id:'s',title:'T',artist:'A',categories:[],history:[],lyrics:'',chords:''};
-  assert.ok(view.songDetail(s,{...base,reference_url:yt}).includes('<iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0"'));
-  assert.ok(view.songDetail(s,{...base,video_url:'/api/media/v.mp4'}).includes('<video class="video-frame"'));
+  const base={id:'s',title:'T',artist:'A',categories:[],history:[],lyrics:'La la',chords:''};
+  const page=view.songDetail(s,{...base,reference_url:'https://youtu.be/dQw4w9WgXcQ'});
+  assert.ok(page.includes('<iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0"'));assert.ok(page.includes('id="song-panel"'));
+  // Lyrics open inside the panel, under the same media frame.
+  const lyrics=view.songDetail(s,{...base,reference_url:'https://youtu.be/dQw4w9WgXcQ'},'lyrics');assert.ok(lyrics.includes('<iframe'));assert.ok(lyrics.includes('id="lyrics-reader"'));assert.ok(lyrics.includes('La la'));
   assert.ok(view.songDetail(s,{...base,reference_url:'https://deezer.com/x'}).includes('Écouter le chant de référence'));
-  assert.ok(view.songDetail(s,{...base,audio_url:'/api/media/a.mp3'}).includes('id="audio-progress"'));
-  assert.ok(view.songDetail(s,{...base,reference_url:'javascript:alert(1)'}).includes('href="#"'));
+  assert.ok(view.songDetail(s,{...base,reference_url:'javascript:alert(1)'}).includes('Lien du chant de référence à ajouter'));
 });
 test('logo is a true vector monogram, not a pixel trace',()=>{
   const svg=logo();assert.ok(svg.includes('stroke="currentColor"'));assert.ok(!/h1v1|M\d+ \d+h\d+v1/.test(svg));assert.ok(svg.length<1500);
