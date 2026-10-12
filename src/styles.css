@@ -55,7 +55,11 @@
 /* ——— Lecture en cascade : audio → vidéo / YouTube → lien de référence ——— */
 .video-frame{display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:18px;background:#1b0b33;box-shadow:0 16px 50px #31184b20;object-fit:cover}
 .song-visual.has-media{align-self:start}
-.media-note{order:2;display:flex;align-items:center;gap:9px;margin:4px 0 22px;font-size:12px;color:var(--muted)}
+.media-note{order:2;display:flex;align-items:center;gap:10px;margin:4px 0 22px;font-size:13px;color:var(--ink)}
+.media-note b{font-weight:600}
+.media-note small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.media-note>span,.media-note small{line-height:1.3}
+.media-note>span{display:flex;flex-direction:column}
 .media-note .icon{width:18px;height:18px;color:var(--purple);flex-shrink:0}
 .player.media-link{display:flex;align-items:center;gap:15px;border:1px solid var(--line);background:var(--white);padding:16px 18px;border-radius:12px;text-align:left;font-size:14px;flex-wrap:nowrap}
 .player.media-link>span{flex:1;min-width:0;overflow-wrap:anywhere}
@@ -67,7 +71,8 @@
 @media(max-width:760px){
   .song-visual.has-media{max-width:none;margin:0 0 14px}
   .video-frame{border-radius:12px;box-shadow:none}
-  .media-note{justify-content:center;text-align:center;margin:0 0 14px}
+  .media-note{justify-content:center;text-align:center;margin:0 0 14px;flex-direction:column;gap:6px}
+  .media-note .icon{width:22px;height:22px}
   .expanded .song-visual.has-media{height:auto;margin:0 0 14px;padding:0 25px}
   .expanded .video-frame{height:auto;border-radius:12px}
 }
