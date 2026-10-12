@@ -140,6 +140,7 @@ const actions={
 document.addEventListener('click',async event=>{
   const link=event.target.closest('a[href^="#"]');if(link){if(link.matches('[data-close-modal]'))closeModal();if(link.getAttribute('href').startsWith('#song/')&&!s.route.path.startsWith('song/'))s.songBack=location.hash;}
   if(event.target.matches('.modal-backdrop')){closeModal();return;}
+  const choice=event.target.closest('[data-cover]');if(choice){event.preventDefault();const picker=choice.closest('.cover-picker');picker.querySelector('input[name=cover]').value=choice.dataset.cover;picker.querySelector('#cover-preview').src=choice.dataset.cover;picker.querySelector('#cover-status').textContent=choice.title;picker.querySelector('.cover-current b').textContent='Pochette proposée';picker.querySelectorAll('.cover-choice').forEach(b=>{b.classList.toggle('selected',b===choice);b.setAttribute('aria-checked',b===choice);});return;}
   const el=event.target.closest('[data-action]');if(!el||el.disabled)return;
   const action=actions[el.dataset.action];if(!action)return;event.preventDefault();
   el.disabled=true;
@@ -184,7 +185,8 @@ document.addEventListener('change',async event=>{
       const field=el.dataset.upload,form=el.closest('form'),status=form.querySelector(`[data-upload-status="${field}"]`);uploadCount++;form.querySelector('[type="submit"]').disabled=true;status.textContent='Import en cours…';
       try{const upload=await api('/uploads',{method:'POST',body:file,headers:{'Content-Type':'application/octet-stream','X-Filename':encodeURIComponent(file.name)}});if(field==='audio_url'&&!upload.mime.startsWith('audio/'))throw new Error('Le champ audio n’accepte que des fichiers audio (MP3, WAV, OGG). Importez la vidéo dans le champ Vidéo.');
         if(field==='video_url'&&!upload.mime.startsWith('video/'))throw new Error('Le champ vidéo n’accepte qu’un fichier MP4 ou un lien YouTube.');
-        form.elements[field].value=upload.url;status.textContent='Fichier importé : '+file.name;}
+        form.elements[field].value=upload.url;status.textContent='Fichier importé : '+file.name;
+        if(field==='cover'){const picker=el.closest('.cover-picker');picker.querySelector('#cover-preview').src=upload.url;picker.querySelector('.cover-current b').textContent='Pochette importée';picker.querySelector('#cover-status').textContent=file.name;picker.querySelectorAll('.cover-choice').forEach(b=>{b.classList.remove('selected');b.setAttribute('aria-checked','false');});}}
       catch(error){status.textContent=error.message;throw error;}finally{uploadCount--;form.querySelector('[type="submit"]').disabled=uploadCount>0;}
     }
   }catch(error){toast(error.message,true);if(el.dataset.roleUser)await render({keepScroll:true});}

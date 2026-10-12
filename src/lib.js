@@ -55,3 +55,7 @@ export function mediaSource(song){
   }
   return {kind:'none',url:'',label:'Aucun média'};
 }
+
+// Covers offered by the application (sharp 1200 px artwork shipped with the front).
+export const COVERS=[['purple','Violet'],['gold','Doré'],['night','Nuit'],['rose','Rose'],['ocean','Océan'],['forest','Forêt'],['ember','Braise'],['dawn','Aurore']].map(([k,label])=>({url:`/assets/cover-${k}.jpg`,label}));
+export const DEFAULT_COVER=COVERS[0].url;

@@ -5,7 +5,7 @@ import { once } from 'node:events';
 import { makeServer } from '../server.js';
 import { h,normalize,transpose,chordMarkup,filterSongs,setlistCSV,moveItem,safeLink,mediaSource,youtubeId } from '../src/lib.js';
 import * as view from '../src/views.js';
-import { songForm,setlistForm,adminPage,memberForm,temporaryPasswordView } from '../src/admin.js';
+import { songForm,setlistForm,adminPage,memberForm,temporaryPasswordView,coverPicker } from '../src/admin.js';
 import { logo } from '../src/icons.js';
 
 test('untrusted titles and lyrics are escaped in HTML and chord markup',()=>{
@@ -39,6 +39,7 @@ test('screens expose the reference navigation plus repertoire and administrative
   const home=view.home(s);for(const href of ['#events','#styles','#search','#favorites','#songs','#setlists'])assert.ok(home.includes(href));
   const form=songForm(s);for(const name of ['title','artist','lyrics','chords','audio_url','video_url','reference_url','categories'])assert.ok(form.includes(`name="${name}"`));
   assert.ok(setlistForm(s).includes('name="event_id"'));
+  const picker=coverPicker('/assets/cover-gold.jpg');assert.equal((picker.match(/class="cover-choice/g)||[]).length,8);assert.ok(picker.includes('data-cover="/assets/cover-gold.jpg" role="radio" aria-checked="true"'));assert.ok(coverPicker('/api/media/x.jpg').includes('Pochette importée'));
   assert.ok(!view.songList(s,new URLSearchParams(),true).includes('data-action="new-song"'),'pas de bouton « + » sur Mes favoris');
   assert.ok(view.pendingPage().includes('#login'));assert.ok(memberForm().includes('name="email"'));
   const members=adminPage({...s,user:{id:'me',name:'Alice',role:'admin'}},{songs:[],audit:[],users:[{id:'p',name:'<b>Paul</b>',email:'p@x.fr',role:'member',status:'pending',created_at:'2026-10-01'},{id:'me',name:'Alice',email:'a@x.fr',role:'admin',status:'active'}]},'members');
@@ -74,7 +75,7 @@ test('frontend serves app assets, rejects secrets/traversal and proxies real ses
   const server=makeServer({api:'http://127.0.0.1:'+upstream.address().port,trustProxy:false});server.listen(0,'127.0.0.1');await once(server,'listening');const base='http://127.0.0.1:'+server.address().port;
   try{
     const root=await fetch(base+'/');assert.equal(root.status,200);assert.match(await root.text(),/lang="fr"/);assert.match(root.headers.get('content-security-policy'),/frame-ancestors 'none'/);
-    for(const path of ['/src/app.js','/src/styles.css','/assets/app-icon.png','/assets/favicon.svg','/assets/icon-maskable-512.png','/assets/worship-purple.jpg','/manifest.webmanifest'])assert.equal((await fetch(base+path)).status,200,path);
+    for(const path of ['/src/app.js','/src/styles.css','/assets/app-icon.png','/assets/favicon.svg','/assets/icon-maskable-512.png','/assets/cover-purple.jpg','/manifest.webmanifest'])assert.equal((await fetch(base+path)).status,200,path);
     for(const path of ['/.env','/.git/config','/server.js','/src/%2e%2e%2fserver.js'])assert.equal((await fetch(base+path)).status,404,path);
     const response=await fetch(base+'/api/auth/login?test=1',{method:'POST',headers:{'Content-Type':'application/json',Cookie:'pr_session=old'},body:JSON.stringify({email:'test@example.test'})});
     const data=await response.json();assert.equal(data.path,'/api/auth/login?test=1');assert.equal(data.cookie,'pr_session=old');assert.equal(data.body.email,'test@example.test');assert.equal(data.host,new URL(base).host);assert.match(response.headers.get('set-cookie'),/HttpOnly/);
