@@ -210,5 +210,12 @@ audio.addEventListener('error',()=>toast('Impossible de lire ce média. Vérifie
 window.addEventListener('offline',()=>toast('Vous êtes hors connexion. Les modifications nécessitent Internet.',true));
 window.addEventListener('online',()=>toast('Connexion rétablie'));
 
-try{await refresh();if(!location.hash)go(sessionStorage.getItem('pr_seen')?'home':'welcome');sessionStorage.setItem('pr_seen','1');await render();if(s.user?.must_change_password)askNewPassword();if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});}
-catch(error){app.innerHTML=`<main class="startup-error">${view.empty('Le répertoire ne répond pas',error.message,'<button class="btn primary" data-action="retry-startup">Réessayer</button>')}</main>`;actions['retry-startup']=async()=>{await refresh();await render();};}
+// Launch screen: on the first opening of the session the monogram animation plays to the end and rests
+// a moment before the app is revealed; on a reload it simply fades out once the app is ready.
+const wait=ms=>new Promise(done=>setTimeout(done,Math.max(0,ms)));
+async function revealApp(full){const launch=document.querySelector('#launch');if(!launch)return;
+  if(full){const animations=launch.getAnimations?.({subtree:true});await(animations?Promise.all(animations.map(a=>a.finished.catch(()=>{}))):wait(3200-performance.now()));await wait(600);}
+  launch.classList.add('launch-out');setTimeout(()=>launch.remove(),700);}
+
+try{const firstLaunch=!sessionStorage.getItem('pr_seen');await refresh();if(!location.hash)go(firstLaunch?'welcome':'home');sessionStorage.setItem('pr_seen','1');await render();await revealApp(firstLaunch);if(s.user?.must_change_password)askNewPassword();if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});}
+catch(error){app.innerHTML=`<main class="startup-error">${view.empty('Le répertoire ne répond pas',error.message,'<button class="btn primary" data-action="retry-startup">Réessayer</button>')}</main>`;void revealApp(false);actions['retry-startup']=async()=>{await refresh();await render();};}
